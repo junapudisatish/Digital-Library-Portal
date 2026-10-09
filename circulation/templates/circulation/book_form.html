@@ -6,17 +6,20 @@
 <div class="container py-4">
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'catalog' %}" class="text-decoration-none">Catalog</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ title }}</li>
+            <li class="breadcrumb-item"><a href="{% url 'catalog' %}" class="text-decoration-none text-muted">Catalog</a></li>
+            {% if book %}
+                <li class="breadcrumb-item"><a href="{% url 'book_detail' book.id %}" class="text-decoration-none text-muted">{{ book.title }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active fw-bold text-dark" aria-current="page">{{ title }}</li>
         </ol>
     </nav>
 
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card shadow-md border-0 rounded-4 overflow-hidden">
-                <div class="card-header bg-primary text-white p-4" style="background: var(--primary-gradient) !important;">
-                    <h3 class="fw-bold mb-1"><i class="bi bi-book me-2"></i> {{ title }}</h3>
-                    <p class="mb-0 text-white-50">Add a new book title into the digital library circulation catalog.</p>
+                <div class="card-header text-white p-4" style="background: linear-gradient(135deg, #071224 0%, #0b192c 50%, #102a45 100%) !important; border-bottom: 2px solid rgba(212, 175, 55, 0.3);">
+                    <h3 class="fw-bold mb-1"><i class="bi bi-book me-2" style="color: var(--gold-400);"></i> {{ title }}</h3>
+                    <p class="mb-0 text-white-50">Manage catalog metadata, synopsis summary, and physical inventory copies.</p>
                 </div>
 
                 <div class="card-body p-4 p-md-5">
@@ -32,54 +35,61 @@
                         {% csrf_token %}
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Title</label>
+                            <label class="form-label fw-bold text-dark">Book Title</label>
                             {{ form.title }}
-                            {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors.0 }}</div>{% endif %}
+                            {% if form.title.errors %}<div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>{% endif %}
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Author</label>
+                            <label class="form-label fw-bold text-dark">Author</label>
                             {{ form.author }}
-                            {% if form.author.errors %}<div class="text-danger small">{{ form.author.errors.0 }}</div>{% endif %}
+                            {% if form.author.errors %}<div class="text-danger small mt-1">{{ form.author.errors.0 }}</div>{% endif %}
                         </div>
 
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">ISBN</label>
+                                <label class="form-label fw-bold text-dark">ISBN Identifier</label>
                                 {{ form.isbn }}
-                                {% if form.isbn.errors %}<div class="text-danger small">{{ form.isbn.errors.0 }}</div>{% endif %}
+                                {% if form.isbn.errors %}<div class="text-danger small mt-1">{{ form.isbn.errors.0 }}</div>{% endif %}
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Genre</label>
+                                <label class="form-label fw-bold text-dark">Genre / Category</label>
                                 {{ form.genre }}
-                                {% if form.genre.errors %}<div class="text-danger small">{{ form.genre.errors.0 }}</div>{% endif %}
+                                {% if form.genre.errors %}<div class="text-danger small mt-1">{{ form.genre.errors.0 }}</div>{% endif %}
                             </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark">Description &amp; Synopsis</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>{% endif %}
+                            <div class="form-text">Detailed summary of the book displayed to readers on the detail page.</div>
                         </div>
 
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Total Copies</label>
+                                <label class="form-label fw-bold text-dark">Total Physical Copies</label>
                                 {{ form.total_copies }}
-                                {% if form.total_copies.errors %}<div class="text-danger small">{{ form.total_copies.errors.0 }}</div>{% endif %}
+                                {% if form.total_copies.errors %}<div class="text-danger small mt-1">{{ form.total_copies.errors.0 }}</div>{% endif %}
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Available Copies</label>
+                                <label class="form-label fw-bold text-dark">Available Copies (In Stock)</label>
                                 {{ form.available_copies }}
-                                {% if form.available_copies.errors %}<div class="text-danger small">{{ form.available_copies.errors.0 }}</div>{% endif %}
+                                {% if form.available_copies.errors %}<div class="text-danger small mt-1">{{ form.available_copies.errors.0 }}</div>{% endif %}
                             </div>
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label fw-bold">Cover Image URL</label>
+                            <label class="form-label fw-bold text-dark">Cover Image URL</label>
                             {{ form.cover_url }}
-                            {% if form.cover_url.errors %}<div class="text-danger small">{{ form.cover_url.errors.0 }}</div>{% endif %}
-                            <div class="form-text">Direct URL to book cover thumbnail (e.g. Unsplash or OpenLibrary).</div>
+                            {% if form.cover_url.errors %}<div class="text-danger small mt-1">{{ form.cover_url.errors.0 }}</div>{% endif %}
+                            <div class="form-text">Direct URL to book cover image (Unsplash or Open Library).</div>
                         </div>
 
-                        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-                            <a href="{% url 'catalog' %}" class="btn btn-outline-secondary">Cancel</a>
-                            <button type="submit" class="btn btn-primary-custom px-4">
-                                <i class="bi bi-check2-circle me-1"></i> Save Book
+                        <div class="d-flex gap-3 justify-content-end pt-3 border-top">
+                            <a href="{% url 'catalog' %}" class="btn btn-outline-secondary px-4">Cancel</a>
+                            <button type="submit" class="btn btn-navy px-5">
+                                <i class="bi bi-save me-1"></i> Save Book Record
                             </button>
                         </div>
                     </form>

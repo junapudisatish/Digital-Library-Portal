@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}{{ member.name }} | Member Circulation Dashboard{% endblock %}
+{% block title %}{{ member.name }} | Member Dashboard | Digital Library{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'member_list' %}" class="text-decoration-none">Members</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ member.name }}</li>
+            <li class="breadcrumb-item"><a href="{% url 'member_list' %}" class="text-decoration-none text-muted">Members</a></li>
+            <li class="breadcrumb-item active fw-bold text-dark" aria-current="page">{{ member.name }}</li>
         </ol>
     </nav>
 
@@ -17,13 +17,17 @@
             <div class="row align-items-center gy-4">
                 <div class="col-md-7">
                     <div class="d-flex align-items-center gap-3 mb-3">
-                        <div class="rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center shadow-sm" style="width: 64px; height: 64px; font-size: 1.75rem; background: var(--primary-gradient) !important;">
+                        <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center shadow-sm"
+                             style="width: 68px; height: 68px; font-size: 1.85rem; background: linear-gradient(135deg, #071224 0%, #183b5e 100%) !important; border: 2px solid var(--gold-400);">
                             {{ member.name|slice:":1" }}
                         </div>
                         <div>
-                            <div class="d-flex align-items-center gap-2">
-                                <h1 class="h3 fw-bold mb-0">{{ member.name }}</h1>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <h1 class="h3 fw-bold mb-0 text-dark">{{ member.name }}</h1>
                                 <span class="badge bg-light text-dark border font-monospace">{{ member.member_id }}</span>
+                                {% if member.user %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Online Account Linked</span>
+                                {% endif %}
                             </div>
                             <div class="text-muted small mt-1">
                                 <i class="bi bi-envelope me-1"></i> {{ member.email }}
@@ -32,7 +36,7 @@
                         </div>
                     </div>
                     <div class="small text-muted">
-                        <i class="bi bi-calendar-check me-1"></i> Member Since: <strong>{{ member.joined_date|date:"F d, Y" }}</strong>
+                        <i class="bi bi-calendar-check me-1 text-warning"></i> Member Since: <strong>{{ member.joined_date|date:"F d, Y" }}</strong>
                     </div>
                 </div>
 
@@ -41,13 +45,13 @@
                     <div class="row g-2 text-center">
                         <div class="col-4">
                             <div class="p-3 bg-light rounded-3 border">
-                                <div class="fs-4 fw-bold text-primary">{{ active_records.count }}</div>
+                                <div class="fs-4 fw-bold text-dark font-monospace">{{ active_records.count }}</div>
                                 <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Active Loans</div>
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="p-3 bg-light rounded-3 border">
-                                <div class="fs-4 fw-bold {% if overdue_count > 0 %}text-danger{% else %}text-success{% endif %}">
+                                <div class="fs-4 fw-bold font-monospace {% if overdue_count > 0 %}text-danger{% else %}text-success{% endif %}">
                                     {{ overdue_count }}
                                 </div>
                                 <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Overdue</div>
@@ -55,7 +59,7 @@
                         </div>
                         <div class="col-4">
                             <div class="p-3 bg-light rounded-3 border">
-                                <div class="fs-4 fw-bold {% if grand_total_fines > 0 %}text-danger{% else %}text-muted{% endif %}">
+                                <div class="fs-4 fw-bold font-monospace {% if grand_total_fines > 0 %}text-danger{% else %}text-muted{% endif %}">
                                     ${{ grand_total_fines|floatformat:2 }}
                                 </div>
                                 <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Total Fines</div>
@@ -74,10 +78,10 @@
             <div>
                 <h5 class="fw-bold text-danger mb-1">Overdue Circulation Alert!</h5>
                 <p class="mb-2">
-                    This member has <strong>{{ overdue_count }} book(s)</strong> that have exceeded the 14-day loan term. 
+                    This member has <strong>{{ overdue_count }} book(s)</strong> that have exceeded the standard 14-day loan term. 
                     Accrued estimated overdue fine: <strong class="text-danger">${{ total_accrued_fines|floatformat:2 }}</strong> (${{ daily_fine_rate }}/day overdue).
                 </p>
-                <div class="small text-muted">Please process returns immediately to prevent additional daily fines.</div>
+                <div class="small text-muted">Please process returns to prevent additional daily fines.</div>
             </div>
         </div>
     {% endif %}
@@ -86,7 +90,7 @@
     <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold"><i class="bi bi-book-half me-2 text-primary"></i> Currently Borrowed Books ({{ active_records.count }})</h5>
-            <a href="{% url 'issue_book' %}" class="btn btn-sm btn-primary-custom">
+            <a href="{% url 'issue_book' %}" class="btn btn-sm btn-navy">
                 <i class="bi bi-plus-lg me-1"></i> Issue Another Book
             </a>
         </div>
@@ -117,7 +121,7 @@
                                                 </div>
                                             {% endif %}
                                             <div>
-                                                <a href="{% url 'book_detail' loan.book.id %}" class="fw-bold text-dark text-decoration-none">
+                                                <a href="{% url 'book_detail' loan.book.id %}" class="fw-bold text-dark text-decoration-none d-block">
                                                     {{ loan.book.title }}
                                                 </a>
                                                 <div class="small text-muted">by {{ loan.book.author.name }}</div>
@@ -162,7 +166,7 @@
                     <i class="bi bi-journal-check display-4 text-success d-block mb-2"></i>
                     <h5>No active borrowings</h5>
                     <p class="mb-3">This member currently has no books checked out.</p>
-                    <a href="{% url 'issue_book' %}" class="btn btn-primary-custom btn-sm">Issue a Book Now</a>
+                    <a href="{% url 'issue_book' %}" class="btn btn-navy btn-sm">Issue a Book Now</a>
                 </div>
             {% endif %}
         </div>

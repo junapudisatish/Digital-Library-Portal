@@ -9,6 +9,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.sqlite3-journal
+*.sqlite3.bak
+*.bak
 
 # Django staticfiles collected locally
 staticfiles/

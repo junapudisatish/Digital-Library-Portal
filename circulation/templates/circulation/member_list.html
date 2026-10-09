@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Members Directory | Digital Library{% endblock %}
+{% block title %}Members Directory | Digital Library Portal{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h1 class="h3 fw-bold mb-1"><i class="bi bi-people text-primary me-2"></i> Library Members Directory</h1>
-            <p class="text-muted mb-0">Browse registered library patrons, view borrowing records, and check overdue alerts.</p>
+            <h1 class="h3 fw-bold mb-1 text-dark"><i class="bi bi-people me-2" style="color: var(--gold-600);"></i> Library Members Directory</h1>
+            <p class="text-muted mb-0">Browse registered library students, inspect circulation records, and monitor loan standings.</p>
         </div>
         <div>
-            <a href="{% url 'member_create' %}" class="btn btn-primary-custom">
+            <a href="{% url 'member_create' %}" class="btn btn-navy">
                 <i class="bi bi-person-plus-fill me-1"></i> Register New Member
             </a>
         </div>
@@ -21,8 +21,8 @@
         <form method="GET" action="{% url 'member_list' %}">
             <div class="input-group">
                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                <input type="text" name="q" value="{{ query }}" class="form-control border-start-0" placeholder="Search member by name, Member ID, email, or phone...">
-                <button type="submit" class="btn btn-primary-custom px-4">Search</button>
+                <input type="text" name="q" value="{{ query }}" class="form-control border-start-0" placeholder="Search member by name, Member/Student ID, email, or phone...">
+                <button type="submit" class="btn btn-navy px-4">Search</button>
                 {% if query %}
                     <a href="{% url 'member_list' %}" class="btn btn-outline-secondary">Reset</a>
                 {% endif %}
@@ -50,7 +50,8 @@
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; font-size: 1.1rem;">
+                                    <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center"
+                                         style="width: 44px; height: 44px; font-size: 1.1rem; background: linear-gradient(135deg, #071224 0%, #183b5e 100%);">
                                         {{ m.name|slice:":1" }}
                                     </div>
                                     <div>
@@ -83,7 +84,7 @@
                                 {% endif %}
                             </td>
                             <td class="text-end">
-                                <a href="{% url 'member_dashboard' m.id %}" class="btn btn-sm btn-outline-primary">
+                                <a href="{% url 'member_dashboard' m.id %}" class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-speedometer2 me-1"></i> Dashboard
                                 </a>
                             </td>
@@ -91,8 +92,8 @@
                     {% empty %}
                         <tr>
                             <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-people display-4 d-block mb-2"></i>
-                                No members found. <a href="{% url 'member_create' %}" class="text-decoration-none">Register the first member</a> or load sample data.
+                                <i class="bi bi-people display-4 d-block mb-2 text-secondary opacity-50"></i>
+                                No members found matching your search. <a href="{% url 'member_create' %}" class="text-decoration-none">Register a new member</a>.
                             </td>
                         </tr>
                     {% endfor %}

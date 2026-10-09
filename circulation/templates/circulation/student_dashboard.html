@@ -1,0 +1,525 @@
+{% extends "base.html" %}
+
+{% block title %}My Library | Digital Library Portal{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'catalog' %}" class="text-decoration-none text-muted">Catalog</a></li>
+            <li class="breadcrumb-item active fw-bold text-dark" aria-current="page">My Library</li>
+        </ol>
+    </nav>
+
+    <!-- Student Profile Header Card -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-4 p-md-5">
+            <div class="row align-items-center gy-4">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center shadow-sm"
+                             style="width: 68px; height: 68px; font-size: 1.85rem; background: linear-gradient(135deg, #071224 0%, #183b5e 100%) !important; border: 2px solid var(--gold-400);">
+                            {{ member.name|slice:":1" }}
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <h1 class="h3 fw-extrabold mb-0 text-dark">{{ member.name }}</h1>
+                                <span class="badge bg-light text-dark border font-monospace px-2 py-1">{{ member.member_id }}</span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Student Member</span>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <i class="bi bi-envelope me-1"></i> {{ member.email }}
+                                {% if member.phone %} &bull; <i class="bi bi-telephone ms-1 me-1"></i> {{ member.phone }}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <div class="small text-muted">
+                            <i class="bi bi-calendar-check me-1 text-warning"></i> Member Since: <strong>{{ member.joined_date|date:"F d, Y" }}</strong>
+                        </div>
+                        <a href="{% url 'password_change' %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-key me-1"></i> Change Password
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 4 Executive Metric Tiles: Pending, Borrowed, Due Soon, Overdue -->
+                <div class="col-md-6">
+                    <div class="row g-2 text-center">
+                        <div class="col-6 col-sm-3">
+                            <div class="p-3 bg-light rounded-3 border h-100">
+                                <div class="fs-4 fw-bold text-warning font-monospace">{{ pending_count }}</div>
+                                <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Pending</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="p-3 bg-light rounded-3 border h-100">
+                                <div class="fs-4 fw-bold text-primary font-monospace">{{ active_count }}</div>
+                                <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Borrowed</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="p-3 bg-light rounded-3 border h-100">
+                                <div class="fs-4 fw-bold font-monospace {% if due_soon_count > 0 %}text-warning{% else %}text-muted{% endif %}">{{ due_soon_count }}</div>
+                                <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Due Soon</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="p-3 bg-light rounded-3 border h-100">
+                                <div class="fs-4 fw-bold font-monospace {% if overdue_count > 0 %}text-danger{% else %}text-success{% endif %}">{{ overdue_count }}</div>
+                                <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Overdue</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overdue Alert Notification Banner -->
+    {% if overdue_count > 0 %}
+        <div class="alert alert-danger shadow-sm border-0 rounded-4 p-4 mb-4 d-flex align-items-start gap-3">
+            <i class="bi bi-exclamation-octagon-fill fs-2 text-danger flex-shrink-0"></i>
+            <div>
+                <h5 class="fw-bold text-danger mb-1">Overdue Circulation Notice!</h5>
+                <p class="mb-2">
+                    You currently have <strong>{{ overdue_count }} book(s)</strong> that have exceeded the standard 14-day loan term.
+                    Accrued estimated fine: <strong class="text-danger">₹{{ total_accrued_fines|floatformat:2 }}</strong> (₹{{ daily_fine_rate }}/day overdue).
+                </p>
+                <div class="small text-muted">Please visit the library circulation desk to return these books and prevent further daily overdue fines.</div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Navigation Tabs for My Library Sections -->
+    <ul class="nav nav-pills custom-nav-pills mb-4 flex-wrap gap-2" id="studentDashboardTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-sec" type="button" role="tab" aria-selected="true">
+                <i class="bi bi-hourglass-split me-1"></i> Pending Requests
+                <span class="badge {% if pending_count > 0 %}bg-warning text-dark{% else %}bg-secondary{% endif %} ms-1">{{ pending_count }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="borrowed-tab" data-bs-toggle="tab" data-bs-target="#borrowed-sec" type="button" role="tab" aria-selected="false">
+                <i class="bi bi-book-half me-1"></i> Active Loans
+                <span class="badge {% if active_count > 0 %}bg-primary{% else %}bg-secondary{% endif %} ms-1">{{ active_count }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="duesoon-tab" data-bs-toggle="tab" data-bs-target="#duesoon-sec" type="button" role="tab" aria-selected="false">
+                <i class="bi bi-alarm me-1"></i> Due Soon
+                <span class="badge {% if due_soon_count > 0 %}bg-warning text-dark{% else %}bg-secondary{% endif %} ms-1">{{ due_soon_count }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="overdue-tab" data-bs-toggle="tab" data-bs-target="#overdue-sec" type="button" role="tab" aria-selected="false">
+                <i class="bi bi-exclamation-triangle me-1"></i> Overdue
+                <span class="badge {% if overdue_count > 0 %}bg-danger{% else %}bg-secondary{% endif %} ms-1">{{ overdue_count }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-sec" type="button" role="tab" aria-selected="false">
+                <i class="bi bi-clock-history me-1"></i> History
+                <span class="badge bg-light text-dark border ms-1">{{ returned_count }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected-sec" type="button" role="tab" aria-selected="false">
+                <i class="bi bi-x-circle me-1"></i> Rejected
+                {% if rejected_count > 0 %}<span class="badge bg-danger ms-1">{{ rejected_count }}</span>{% endif %}
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content Panes -->
+    <div class="tab-content" id="studentDashboardTabContent">
+
+        <!-- 1. Pending Borrowing Requests Section -->
+        <div class="tab-pane fade show active" id="pending-sec" role="tabpanel" aria-labelledby="pending-tab">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-hourglass-split me-2 text-warning"></i> Pending Borrowing Requests ({{ pending_count }})</h5>
+                    <a href="{% url 'catalog' %}" class="btn btn-sm btn-navy">
+                        <i class="bi bi-plus-lg me-1"></i> Request Another Book
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    {% if pending_requests %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Book Title</th>
+                                        <th>Requested Date</th>
+                                        <th>Status</th>
+                                        <th>Librarian Review Note</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for req in pending_requests %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-3">
+                                                    {% if req.book.cover_url %}
+                                                        <img src="{{ req.book.cover_url }}" alt="Cover" class="rounded shadow-sm" style="width: 44px; height: 58px; object-fit: cover;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';">
+                                                    {% else %}
+                                                        <div class="bg-secondary bg-opacity-25 rounded d-flex align-items-center justify-content-center text-muted" style="width: 44px; height: 58px;">
+                                                            <i class="bi bi-book"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                    <div>
+                                                        <a href="{% url 'book_detail' req.book.id %}" class="fw-bold text-dark text-decoration-none d-block">
+                                                            {{ req.book.title }}
+                                                        </a>
+                                                        <div class="small text-muted">by {{ req.book.author.name }}</div>
+                                                        <div class="small font-monospace text-muted">ISBN: {{ req.book.isbn }}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="small">{{ req.request_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                <span class="badge bg-warning text-dark px-3 py-2">
+                                                    <i class="bi bi-hourglass-top me-1"></i> Pending Librarian Approval
+                                                </span>
+                                            </td>
+                                            <td class="small text-muted">
+                                                Awaiting physical copy verification &amp; issue approval by library staff.
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="{% url 'book_detail' req.book.id %}" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-eye"></i> View
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-5 text-center text-muted">
+                            <i class="bi bi-inbox display-4 text-secondary d-block mb-2 opacity-50"></i>
+                            <h5>No Pending Borrowing Requests</h5>
+                            <p class="mb-3">When you click "Borrow Book" on any catalog item, your request will appear here awaiting librarian approval.</p>
+                            <a href="{% url 'catalog' %}" class="btn btn-gold btn-sm">Browse Catalog &amp; Request Books</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Currently Borrowed / Active Loans Section -->
+        <div class="tab-pane fade" id="borrowed-sec" role="tabpanel" aria-labelledby="borrowed-tab">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-book-half me-2 text-primary"></i> Currently Borrowed Books ({{ active_count }})</h5>
+                    <a href="{% url 'catalog' %}" class="btn btn-sm btn-navy">
+                        <i class="bi bi-search me-1"></i> Browse Catalog
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    {% if active_records %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Book Title</th>
+                                        <th>Issue Date</th>
+                                        <th>Due Date</th>
+                                        <th>Loan Status</th>
+                                        <th>Accrued Fine</th>
+                                        <th class="text-end">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for loan in active_records %}
+                                        <tr class="{% if loan.is_overdue %}table-danger table-opacity-25{% endif %}">
+                                            <td>
+                                                <div class="d-flex align-items-center gap-3">
+                                                    {% if loan.book.cover_url %}
+                                                        <img src="{{ loan.book.cover_url }}" alt="Cover" class="rounded shadow-sm" style="width: 44px; height: 58px; object-fit: cover;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';">
+                                                    {% else %}
+                                                        <div class="bg-secondary bg-opacity-25 rounded d-flex align-items-center justify-content-center text-muted" style="width: 44px; height: 58px;">
+                                                            <i class="bi bi-book"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                    <div>
+                                                        <a href="{% url 'book_detail' loan.book.id %}" class="fw-bold text-dark text-decoration-none d-block">
+                                                            {{ loan.book.title }}
+                                                        </a>
+                                                        <div class="small text-muted">by {{ loan.book.author.name }}</div>
+                                                        <div class="small font-monospace text-muted">ISBN: {{ loan.book.isbn }}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="small">{{ loan.issue_date|date:"M d, Y" }}</td>
+                                            <td class="small font-monospace fw-bold">{{ loan.due_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                {% if loan.is_overdue %}
+                                                    <span class="badge badge-overdue p-2">
+                                                        <i class="bi bi-clock-history me-1"></i> OVERDUE ({{ loan.days_overdue }} days)
+                                                    </span>
+                                                {% elif loan.is_due_soon %}
+                                                    <span class="badge bg-warning text-dark p-2">
+                                                        <i class="bi bi-alarm me-1"></i> Due in {{ loan.due_date|timeuntil }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle p-2">
+                                                        <i class="bi bi-shield-check me-1"></i> On Track (14-day loan)
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if loan.current_estimated_fine > 0 %}
+                                                    <span class="fw-bold text-danger font-monospace fs-6">
+                                                        ₹{{ loan.current_estimated_fine|floatformat:2 }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted font-monospace">₹0.00</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="{% url 'book_detail' loan.book.id %}" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-eye"></i> View
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-5 text-center text-muted">
+                            <i class="bi bi-journal-check display-4 text-success d-block mb-2"></i>
+                            <h5>No Active Borrowed Books</h5>
+                            <p class="mb-3">You currently do not have any books checked out on loan.</p>
+                            <a href="{% url 'catalog' %}" class="btn btn-gold btn-sm">Explore Book Catalog</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Due Soon Section -->
+        <div class="tab-pane fade" id="duesoon-sec" role="tabpanel" aria-labelledby="duesoon-tab">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-alarm me-2 text-warning"></i> Loans Expiring Soon (Next 3 Days)</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if due_soon_records %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Book Title</th>
+                                        <th>Issued Date</th>
+                                        <th>Due Date</th>
+                                        <th>Time Remaining</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for loan in due_soon_records %}
+                                        <tr class="table-warning table-opacity-25">
+                                            <td class="fw-bold text-dark">{{ loan.book.title }}</td>
+                                            <td class="small">{{ loan.issue_date|date:"M d, Y" }}</td>
+                                            <td class="small font-monospace fw-bold">{{ loan.due_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="bi bi-hourglass-split me-1"></i> Due in {{ loan.due_date|timeuntil }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="{% url 'book_detail' loan.book.id %}" class="btn btn-sm btn-outline-secondary">View Details</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-5 text-center text-muted">
+                            <i class="bi bi-calendar-check display-4 text-success d-block mb-2"></i>
+                            <h5>No Loans Expiring Soon</h5>
+                            <p class="mb-0">None of your active borrowings are due within the next 3 days.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Overdue Books Section -->
+        <div class="tab-pane fade" id="overdue-sec" role="tabpanel" aria-labelledby="overdue-tab">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="mb-0 fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i> Overdue Books Requiring Return</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if overdue_records %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Book Title</th>
+                                        <th>Due Date</th>
+                                        <th>Days Overdue</th>
+                                        <th>Estimated Accrued Fine (₹5/day)</th>
+                                        <th class="text-end">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for loan in overdue_records %}
+                                        <tr class="table-danger table-opacity-25">
+                                            <td class="fw-bold text-dark">{{ loan.book.title }}</td>
+                                            <td class="small font-monospace fw-bold text-danger">{{ loan.due_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                <span class="badge badge-overdue p-2">
+                                                    {{ loan.days_overdue }} days late
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold text-danger font-monospace fs-6">
+                                                    ₹{{ loan.current_estimated_fine|floatformat:2 }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="{% url 'book_detail' loan.book.id %}" class="btn btn-sm btn-outline-danger">View Book</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-5 text-center text-muted">
+                            <i class="bi bi-shield-check display-4 text-success d-block mb-2"></i>
+                            <h5 class="fw-bold text-success">All Clear! No Overdue Loans</h5>
+                            <p class="mb-0">You have no overdue borrowings in the system.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Complete Borrowing History Section -->
+        <div class="tab-pane fade" id="history-sec" role="tabpanel" aria-labelledby="history-tab">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-success"></i> Borrowing History (Past Returns)</h5>
+                    <span class="badge bg-light text-muted border">{{ returned_count }} Past Loans</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if past_records %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Book Title</th>
+                                        <th>Issue Date</th>
+                                        <th>Due Date</th>
+                                        <th>Return Date</th>
+                                        <th>Fine Assessed</th>
+                                        <th>Return Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for past in past_records %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'book_detail' past.book.id %}" class="fw-bold text-dark text-decoration-none">
+                                                    {{ past.book.title }}
+                                                </a>
+                                                <div class="small text-muted">by {{ past.book.author.name }}</div>
+                                            </td>
+                                            <td class="small">{{ past.issue_date|date:"M d, Y"|default:"N/A" }}</td>
+                                            <td class="small font-monospace">{{ past.due_date|date:"M d, Y"|default:"N/A" }}</td>
+                                            <td class="small font-monospace">{{ past.return_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                {% if past.fine_amount > 0 %}
+                                                    <span class="badge bg-danger-subtle text-danger font-monospace px-2 py-1">
+                                                        ₹{{ past.fine_amount }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-muted border font-monospace px-2 py-1">₹0.00</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if past.fine_amount > 0 %}
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                                        Late Return (Fine Assessed)
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                        Returned On Time
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-5 text-center text-muted">
+                            <i class="bi bi-hourglass-split fs-3 d-block mb-1"></i>
+                            No past returned loans recorded yet.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Rejected Requests Section -->
+        <div class="tab-pane fade" id="rejected-sec" role="tabpanel" aria-labelledby="rejected-tab">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-x-circle me-2 text-danger"></i> Rejected Borrowing Requests</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if rejected_requests %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Book Title</th>
+                                        <th>Request Date</th>
+                                        <th>Status</th>
+                                        <th>Librarian Rejection Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for req in rejected_requests %}
+                                        <tr class="table-secondary table-opacity-25">
+                                            <td>
+                                                <a href="{% url 'book_detail' req.book.id %}" class="fw-bold text-dark text-decoration-none">
+                                                    {{ req.book.title }}
+                                                </a>
+                                                <div class="small text-muted">by {{ req.book.author.name }}</div>
+                                            </td>
+                                            <td class="small">{{ req.request_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                <span class="badge bg-danger">Rejected</span>
+                                            </td>
+                                            <td class="small text-danger fw-semibold">
+                                                <i class="bi bi-info-circle me-1"></i> {{ req.rejection_reason|default:"Request declined by library staff." }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-5 text-center text-muted">
+                            <i class="bi bi-check-circle display-4 text-success d-block mb-2"></i>
+                            <h5>No Rejected Requests</h5>
+                            <p class="mb-0">You have no rejected borrowing requests.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

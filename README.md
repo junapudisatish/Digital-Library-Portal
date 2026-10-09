@@ -1,143 +1,181 @@
 # Digital Library & E-Book Circulation Portal
 
-A modern, responsive full-stack **Digital Library & E-Book Circulation Portal** built with **Django**, **Bootstrap 5**, **JavaScript (ES6+)**, and **SQLite**. Deployed and production-ready for **Render** using **WhiteNoise** and **Gunicorn**.
+A comprehensive, production-ready full-stack **Digital Library & E-Book Circulation Portal** built with **Django**, **Bootstrap 5**, **JavaScript (ES6+)**, and **SQLite**. Featuring an elegant **Navy Blue, Crisp White, and Subtle Metallic Gold** design system, a two-stage **Student Borrow Request & Librarian Approval Lifecycle**, real-time **14-Day Loan Engine**, automated **₹5/day Overdue Fine Calculation**, full **Django Admin & Member Authentication**, and public deployment on **Render** using **WhiteNoise** and **Gunicorn**.
 
 ---
 
-## 1. Project Overview & Features
+## 1. Key Features & Architectural Capabilities
 
-- **Dynamic Book Catalog**: Browse titles with high-definition book covers, author metadata, genre tags, and availability status pills.
-- **Instant Client-Side Search & Filter**: Real-time JavaScript search filtering by title, author, genre, and ISBN without full-page reloads.
-- **Book Issue Workflow**:
-  - Automatically verifies available inventory
-  - Decrements available stock upon checkout.
-  - Automatically calculates and sets the standard **14-day loan term due date**.
-- **Book Return Workflow & Fine Assessment**:
-  - Replenishes available stock upon return
-  - Interactive overdue calculation preview widget before submission.
-  - Computes overdue fines based on daily penalty rates
-- **Patron / Member Dashboard**:
-  - Live loan status tracking 
-  - Prominent overdue alert banners showing overdue durations and calculated fines.
-  - One-click return processing buttons directly from active loan rows.
-  - Complete borrowing history with fine assessment records.
-- **Interactive Due-Date & Fine Calculator**:
-  - Standalone simulation tool with configurable loan terms (7, 14, 21, 30 days) and date pickers.
-  - Real-time client-side overdue day computation and fine evaluation.
-- **Automated Sample Data Seeding**:
-  - Populate 7 authors, 8 classic & modern books with cover images, 4 members, and realistic circulation records (including active on-time, active overdue, and past returned loans).
+### 🎨 Premium Navy Blue & Gold Design System
+- **Curated Palette**: Deep Luxury Navy (`#0B192C`, `#102A45`), Crisp White (`#FFFFFF`), and Warm Metallic Gold accents (`#D4AF37`, `#C59B27`).
+- **Modern Typography**: Google Fonts (*Outfit* for bold headings and *Plus Jakarta Sans* for clean body text).
+- **Glassmorphic Navigation**: Sticky navy navbar with gold branding badge and role-based dropdown navigation.
+- **Micro-Animations & Visual Hierarchy**: Smooth card lifting (`translateY`), cover image zoom on hover, overdue pulse indicators, and CSS skeleton loaders.
+- **Full Responsiveness**: Seamless across mobile phones, tablets, and wide desktop displays.
+
+### 📚 Book Catalog, Instant Search, Filtering & Pagination
+- **Multi-Criteria Discovery**: Instant client-side ES6+ search alongside server-side keyword query across title, author, genre, and ISBN.
+- **Category & Stock Filters**: Filter by genre or availability (In Stock vs. Checked Out).
+- **Database-Optimized Sorting**: Sort by Title (A &rarr; Z), Title (Z &rarr; A), Author, Most Available Copies, or Newest Additions.
+- **Django Pagination**: 8 books per page with preserved query parameters across pagination links.
+- **Rich Book Detail Pages**: Book cover, author biography, ISBN, total/available copies, synopsis overview, student loan status alert, and complete checkout history.
+
+### 🎓 Student Authentication & "My Library" Dashboard
+- **Secure Registration (`/register/`)**: Student signup provisioning a Django user account and linking to an automated student library card (`Member` record).
+- **Member & Staff Login (`/login/`)**: Standard secure Django authentication with password hashing and CSRF protection. Credentials are never exposed on login pages.
+- **Password Management**: Built-in Password Change (`/password-change/`) with session preservation and Password Reset (`/password-reset/`) flows.
+- **"My Library" Dashboard (`/student/dashboard/`)**:
+  - **4 Executive Metric Cards**: Pending Requests, Currently Borrowed, Due Soon, and Overdue.
+  - **6 Dedicated Sections**:
+    1. Pending Requests (with live approval status badges)
+    2. Active Loans (with 14-day due date countdowns)
+    3. Due Soon (within 3 days)
+    4. Overdue Loans (with live estimated overdue days and ₹5/day fines)
+    5. Returned Books / Historical Circulation
+    6. Rejected Requests (with librarian explanation note)
+
+### 🛡️ Librarian-Approved Book Borrowing Workflow
+1. **Student Request**: Authenticated student browses the catalog and clicks **Borrow Book**.
+2. **Server Validation**: The server validates book availability, prevents duplicate pending/active loans, and records a `PENDING` request. Available copies are **NOT** decremented at request submission.
+3. **Librarian Review**: Staff views pending requests in the **Librarian Operations Center** (`/staff/`).
+4. **Librarian Approval**:
+   - Atomic database transaction (`transaction.atomic`) rechecks availability.
+   - Decrements `available_copies` by exactly 1.
+   - Sets status to `APPROVED`, records issue date, and computes authoritative due date (`issue_date + 14 days`).
+   - Records the approving librarian.
+5. **Librarian Rejection**:
+   - Marks request `REJECTED` and records optional rejection reason for the student.
+   - Stock remains untouched.
+
+### 💰 Book Returns & Overdue Fine Engine
+- **Loan Period**: Standard 14 days.
+- **Fine Rate**: ₹5.00 per calendar day overdue (`DAILY_FINE_RATE = Decimal('5.00')`). Grace period: None.
+- **Fine Formula**: `Overdue Days × ₹5.00` (where `Overdue Days = max(0, return_date - due_date)`).
+- **Return Processing (`/return/`)**: Authorized librarians process returns. Available copies increment by exactly 1, and the final fine amount is authoritatively recorded.
+
+### 🛡️ Librarian / Staff Management Hub (`/staff/`)
+- **8 Real-Time ORM Statistics**: Unique Titles, Total Stock, Available Copies, Registered Members, Pending Requests, Active Loans, Overdue Loans, and Returned Books.
+- **Pending Request Decision Queue**: Review student requests with 1-click Approve or modal Reject.
+- **Overdue Attention Center**: Live list of past-due checkouts with estimated fines requiring immediate return.
+- **Inventory & Copy Management**: Add new titles (`/book/add/`), edit metadata (`/book/<id>/edit/`), and manage stock copy counts.
+- **Members Directory (`/members/`)**: Inspect student borrowing records, contact info, and loan standings.
 
 ---
 
-## 2. Technology Stack
+## 2. Administrator & Member Authentication Setup
+
+### Secure Superuser / Admin Setup
+Configure or update the superuser account securely using the custom Django management command:
+```bash
+python manage.py setup_admin --username=admin --password=admini@123 --email=admin@library.demo
+```
+This command is idempotent: if `admin` exists, its password and permissions are updated safely without creating duplicate records or logging passwords.
+
+| Role | Username | Initial Demo Credential | Notes |
+| :--- | :--- | :--- | :--- |
+| **Librarian / Superuser** | `admin` | `admini@123` | Full access to Staff Hub (`/staff/`), Password Change (`/password-change/`), and Django Admin (`/admin/`). Recommend changing password after first login. |
+| **Student Member** | `student` | `student123` | Pre-seeded demo account linked to Alex Rivera (`MEM-1001`). Access to My Library (`/student/dashboard/`). |
+
+---
+
+## 3. Technology Stack
 
 - **Backend**: Python 3.11+, Django 6.x / 5.x, Django ORM
-- **Database**: SQLite (`db.sqlite3` — default built-in Django database)
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+), Bootstrap 5, Bootstrap Icons, Google Fonts (*Plus Jakarta Sans*)
-- **Static Assets & Serving**: WhiteNoise (`CompressedManifestStaticFilesStorage`)
-- **WSGI Production Server**: Gunicorn
-- **Deployment Platform**: Render (Infrastructure-as-code via `render.yaml` Blueprint)
+- **Database**: SQLite (`db.sqlite3`) using Django's built-in backend
+- **Frontend**: HTML5, Vanilla CSS3 (Custom Navy & Gold tokens), JavaScript (ES6+), Bootstrap 5, Bootstrap Icons
+- **Static Asset Pipeline**: WhiteNoise (`CompressedManifestStaticFilesStorage` in production, `StaticFilesStorage` in development)
+- **Production WSGI Server**: Gunicorn
+- **Deployment Platform**: Render (`render.yaml`)
+
+> [!NOTE]
+> **SQLite on Render Free Tier**: Render's default free web service filesystem is ephemeral. While local development uses persistent `db.sqlite3`, data written to SQLite on a free Render web service may reset upon service redeployments or container restarts unless a Render Persistent Disk is attached.
 
 ---
 
-## 3. Database Architecture & Relational Schema
+## 4. Local Installation & Development Setup
 
-Managed through Django ORM and ForeignKey relationships:
-
-1. **`Author`**:
-   - `name` (CharField)
-   - `biography` (TextField)
-2. **`Book`**:
-   - `title` (CharField)
-   - `author` (ForeignKey -> Author)
-   - `isbn` (CharField, unique)
-   - `genre` (CharField)
-   - `total_copies` (PositiveIntegerField)
-   - `available_copies` (PositiveIntegerField)
-   - `cover_url` (URLField)
-3. **`Member`**:
-   - `name` (CharField)
-   - `member_id` (CharField, unique)
-   - `email` (EmailField, unique)
-   - `phone` (CharField)
-   - `joined_date` (DateField)
-4. **`CirculationRecord`**:
-   - `book` (ForeignKey -> Book)
-   - `member` (ForeignKey -> Member)
-   - `issue_date` (DateField)
-   - `due_date` (DateField, auto-defaults to `issue_date + 14 days`)
-   - `return_date` (DateField, nullable)
-   - `fine_amount` (DecimalField, defaults to 0.00)
-   - `returned` (BooleanField, default False)
-
----
-
-## 4. Business Logic Rules
-
-| Rule | Implementation Details |
-|---|---|
-| **Zero Available Copies Constraint** | Issue form disallows checkout when `available_copies == 0`. |
-| **Inventory Decrement** | `book.issue_copy()` reduces `available_copies` by 1 on issue. |
-| **Inventory Replenishment** | `book.return_copy()` increases `available_copies` by 1 on return. |
-| **Loan Period Default** | Due date defaults to 14 days after issue date (`issue_date + timedelta(days=14)`). |
-| **Overdue Fine Computation** | During return, fine = `max(0, (return_date - due_date).days) * DAILY_FINE_RATE`. |
-
----
-
-## 5. Local Setup & Execution
-
-### Step 1: Clone / Navigate to Directory
+### 1. Clone the repository and enter directory
 ```bash
+git clone https://github.com/junapudisatish/Digital-Library-Portal.git
 cd "Digital Library & E-Book Circulation Portal"
 ```
 
-### Step 2: Activate Virtual Environment
+### 2. Activate virtual environment
+**On Windows PowerShell:**
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+**On macOS / Linux:**
 ```bash
-# Windows
-.\venv\Scripts\activate
-
-# Linux / macOS
 source venv/bin/activate
 ```
 
-### Step 3: Install Dependencies
+### 3. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### Step 4: Run Migrations & Create Superuser
+### 4. Run migrations
 ```bash
 python manage.py migrate
-python create_superuser.py
 ```
-### Step 5: Seed Demo Dataset (Optional)
+
+### 5. Seed sample books, demo members, and circulation records
 ```bash
-python manage.py seed_library
+python -c "import django, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'library_portal.settings'); django.setup(); from circulation.seed_data import populate_sample_data; populate_sample_data()"
 ```
 
-### Step 6: Start Development Server
+### 6. Set up admin account
 ```bash
-python manage.py runserver 127.0.0.1:8000
+python manage.py setup_admin --username=admin --password=admini@123
 ```
-Open **`http://127.0.0.1:8000/`** in your browser.
 
----
-## 7. Automated Test Suite
-
-Run the 12 automated unit and integration tests:
+### 7. Run automated test suite
 ```bash
 python manage.py test
 ```
-**Results**:
+
+### 8. Start the local development server
+```bash
+python manage.py runserver
 ```
-Ran 12 tests in 0.422s
-OK
+Visit **`http://127.0.0.1:8000/`** in your browser.
+
+---
+
+## 5. Deployment on Render
+
+This project includes a declarative `render.yaml` blueprint configured for Render:
+
+```yaml
+services:
+  - type: web
+    name: digital-library-demo
+    runtime: python
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate"
+    startCommand: "gunicorn library_portal.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: WEB_CONCURRENCY
+        value: "2"
 ```
-Tests validate:
-- Book inventory decrement & 0-copy validation
-- Model constraints & relations
-- Issue date to 14-day due date calculation
-- On-time vs overdue fine calculations
-- View response codes (HTTP 200)
-- End-to-end checkout & return workflows
-- JSON API calculation endpoint
+
+### Required Environment Variables on Render
+- `SECRET_KEY`: Auto-generated by Render or specified manually.
+- `DEBUG`: Set to `False`.
+- `PYTHON_VERSION`: `3.11.0` or later.
+- `RENDER`: Set to `True` (automatically set by Render).
+
+### Push Changes to GitHub
+```bash
+git status
+git add .
+git commit -m "Upgrade digital library portal"
+git push origin main
+```
+Render automatically triggers the build command (installs dependencies, collects static assets via WhiteNoise, applies migrations) and starts the Gunicorn application server.

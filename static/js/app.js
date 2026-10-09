@@ -1,10 +1,11 @@
 /**
  * DIGITAL LIBRARY & E-BOOK CIRCULATION PORTAL
- * Interactive client-side dynamics, instant search, and fine calculator
+ * Interactive client-side dynamics, instant ES6+ search, sorting triggers, and fine calculator
  */
 
 document.addEventListener('DOMContentLoaded', () => {
     initInstantSearch();
+    initSortChangeAutoSubmit();
     initIssueDateCalculator();
     initReturnFineCalculator();
     initStandaloneCalculator();
@@ -12,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* -------------------------------------------------------------
- * 1. INSTANT CLIENT-SIDE CATALOG FILTERING
+ * 1. INSTANT CLIENT-SIDE CATALOG FILTERING (ES6+)
  * ----------------------------------------------------------- */
 function initInstantSearch() {
     const searchInput = document.getElementById('catalogSearch');
@@ -76,13 +77,23 @@ function initInstantSearch() {
     if (searchInput) searchInput.addEventListener('input', filterCatalog);
     if (genreFilter) genreFilter.addEventListener('change', filterCatalog);
     if (availFilter) availFilter.addEventListener('change', filterCatalog);
-
-    // Initial run
-    filterCatalog();
 }
 
 /* -------------------------------------------------------------
- * 2. BOOK ISSUE WORKFLOW: AUTO DUE DATE (+14 DAYS)
+ * 2. SORT CHANGE AUTO-SUBMIT (FOR PAGINATED DATABASE ORDERING)
+ * ----------------------------------------------------------- */
+function initSortChangeAutoSubmit() {
+    const sortFilter = document.getElementById('sortFilter');
+    const searchForm = document.getElementById('searchForm');
+    if (sortFilter && searchForm) {
+        sortFilter.addEventListener('change', () => {
+            searchForm.submit();
+        });
+    }
+}
+
+/* -------------------------------------------------------------
+ * 3. BOOK ISSUE WORKFLOW: AUTO DUE DATE (+14 DAYS)
  * ----------------------------------------------------------- */
 function initIssueDateCalculator() {
     const issueDateInput = document.getElementById('id_issue_date');
@@ -109,7 +120,7 @@ function initIssueDateCalculator() {
 
         if (duePreviewText) {
             const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
-            duePreviewText.textContent = `Default Due Date (14 days): ${dueDate.toLocaleDateString(undefined, options)}`;
+            duePreviewText.textContent = `Standard Due Date (14 days): ${dueDate.toLocaleDateString(undefined, options)}`;
         }
     }
 
@@ -117,7 +128,7 @@ function initIssueDateCalculator() {
 }
 
 /* -------------------------------------------------------------
- * 3. BOOK RETURN WORKFLOW: LIVE OVERDUE & FINE CALCULATION
+ * 4. BOOK RETURN WORKFLOW: LIVE OVERDUE & FINE CALCULATION (₹5/day)
  * ----------------------------------------------------------- */
 function initReturnFineCalculator() {
     const recordSelect = document.getElementById('id_circulation_record');
@@ -130,7 +141,7 @@ function initReturnFineCalculator() {
 
     if (!recordSelect || !returnDateInput) return;
 
-    const fineRate = fineRateEl ? parseFloat(fineRateEl.dataset.rate || '1.00') : 1.00;
+    const fineRate = fineRateEl ? parseFloat(fineRateEl.dataset.rate || '5.00') : 5.00;
 
     function calculateReturnFine() {
         const selectedOption = recordSelect.options[recordSelect.selectedIndex];
@@ -157,7 +168,7 @@ function initReturnFineCalculator() {
 
         if (summaryCard) summaryCard.style.display = 'block';
         if (daysOverdueEl) daysOverdueEl.textContent = overdueDays;
-        if (fineAmountEl) fineAmountEl.textContent = `$${fine}`;
+        if (fineAmountEl) fineAmountEl.textContent = `₹${fine}`;
 
         if (statusBadgeEl) {
             if (overdueDays > 0) {
@@ -180,7 +191,7 @@ function initReturnFineCalculator() {
 }
 
 /* -------------------------------------------------------------
- * 4. STANDALONE INTERACTIVE DUE DATE & FINE CALCULATOR
+ * 5. STANDALONE INTERACTIVE DUE DATE & FINE CALCULATOR (₹5/day)
  * ----------------------------------------------------------- */
 function initStandaloneCalculator() {
     const calcIssueDate = document.getElementById('calc_issue_date');
@@ -201,7 +212,7 @@ function initStandaloneCalculator() {
         const issueDate = new Date(calcIssueDate.value + 'T00:00:00');
         const periodDays = parseInt(calcLoanPeriod.value || '14', 10);
         const returnDate = new Date(calcReturnDate.value + 'T00:00:00');
-        const rate = parseFloat(calcDailyRate.value || '1.00');
+        const rate = parseFloat(calcDailyRate.value || '5.00');
 
         if (isNaN(issueDate.getTime()) || isNaN(returnDate.getTime())) return;
 
@@ -221,16 +232,16 @@ function initStandaloneCalculator() {
 
         if (resultDueDate) resultDueDate.textContent = formattedDueDate;
         if (resultOverdueDays) resultOverdueDays.textContent = `${overdueDays} days`;
-        if (resultFineAmount) resultFineAmount.textContent = `$${totalFine}`;
+        if (resultFineAmount) resultFineAmount.textContent = `₹${totalFine}`;
 
         if (resultStatusCard && resultStatusTitle && resultStatusSub) {
             if (overdueDays > 0) {
                 resultStatusCard.className = 'calc-display-box overdue';
-                resultStatusTitle.textContent = `OVERDUE: $${totalFine} FINE`;
-                resultStatusSub.textContent = `Book is overdue by ${overdueDays} day(s) past the due date.`;
+                resultStatusTitle.textContent = `OVERDUE: ₹${totalFine} FINE`;
+                resultStatusSub.textContent = `Book is overdue by ${overdueDays} day(s) past the ${periodDays}-day loan period.`;
             } else {
                 resultStatusCard.className = 'calc-display-box';
-                resultStatusTitle.textContent = 'NO OVERDUE FINE ($0.00)';
+                resultStatusTitle.textContent = 'NO OVERDUE FINE (₹0.00)';
                 resultStatusSub.textContent = 'Book returned on or before the due date.';
             }
         }
@@ -247,14 +258,16 @@ function initStandaloneCalculator() {
 }
 
 /* -------------------------------------------------------------
- * 5. AUTO-DISMISS ALERT MESSAGES
+ * 6. AUTO-DISMISS ALERT NOTIFICATIONS
  * ----------------------------------------------------------- */
 function initAutoDismissAlerts() {
     const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
     alerts.forEach(alert => {
         setTimeout(() => {
-            const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
-            if (bsAlert) bsAlert.close();
+            if (window.bootstrap && bootstrap.Alert) {
+                const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+                if (bsAlert) bsAlert.close();
+            }
         }, 6000);
     });
 }

@@ -1,116 +1,220 @@
 {% extends "base.html" %}
 
-{% block title %}{{ book.title }} | Book Details{% endblock %}
+{% block title %}{{ book.title }} | Book Details & Circulation{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'catalog' %}" class="text-decoration-none">Catalog</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ book.title }}</li>
+            <li class="breadcrumb-item"><a href="{% url 'catalog' %}" class="text-decoration-none text-muted">Catalog</a></li>
+            <li class="breadcrumb-item text-muted">{{ book.genre }}</li>
+            <li class="breadcrumb-item active fw-bold text-dark" aria-current="page">{{ book.title }}</li>
         </ol>
     </nav>
 
-    <!-- Book Header Card -->
+    <!-- Student Personal Loan Alert (if current user has borrowed this book) -->
+    {% if user_active_loan %}
+        <div class="alert alert-warning shadow-sm border-0 rounded-4 p-4 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-warning p-3 text-dark fs-3">
+                    <i class="bi bi-bookmark-star-fill"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-1">You Currently Have This Book Checked Out!</h5>
+                    <div class="text-secondary small">
+                        Issued on <strong>{{ user_active_loan.issue_date|date:"F d, Y" }}</strong> &bull; Due Date: <strong>{{ user_active_loan.due_date|date:"F d, Y" }}</strong>
+                        {% if user_active_loan.is_overdue %}
+                            <span class="badge bg-danger ms-2">OVERDUE BY {{ user_active_loan.days_overdue }} DAYS (${{ user_active_loan.current_estimated_fine }} fine)</span>
+                        {% else %}
+                            <span class="badge bg-success ms-2">On Track</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div>
+                <a href="{% url 'student_dashboard' %}" class="btn btn-navy btn-sm px-3">
+                    <i class="bi bi-speedometer2 me-1"></i> View in Student Dashboard
+                </a>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Book Showcase Header Card -->
     <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
         <div class="row g-0">
-            <div class="col-md-3 bg-dark d-flex align-items-center justify-content-center p-3">
+            <div class="col-lg-3 col-md-4 bg-dark d-flex align-items-center justify-content-center p-4" style="background: linear-gradient(135deg, #071224 0%, #0b192c 100%) !important;">
                 {% if book.cover_url %}
-                    <img src="{{ book.cover_url }}" alt="{{ book.title }}" class="img-fluid rounded-3 shadow" style="max-height: 320px; object-fit: cover;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';">
+                    <img src="{{ book.cover_url }}" alt="{{ book.title }}" class="img-fluid rounded-3 shadow-lg" style="max-height: 380px; width: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';">
                 {% else %}
                     <div class="text-white-50 text-center py-5">
-                        <i class="bi bi-book display-1"></i>
+                        <i class="bi bi-journal-bookmark display-1 text-white-50"></i>
                     </div>
                 {% endif %}
             </div>
-            <div class="col-md-9 p-4 p-lg-5 d-flex flex-column">
+
+            <div class="col-lg-9 col-md-8 p-4 p-lg-5 d-flex flex-column">
                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
                     <div>
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-2">{{ book.genre }}</span>
-                        <h1 class="h2 fw-bold text-dark mb-1">{{ book.title }}</h1>
+                        <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-3 py-1 mb-2 fw-bold font-monospace">
+                            {{ book.genre }}
+                        </span>
+                        <h1 class="h2 fw-extrabold text-dark mb-1">{{ book.title }}</h1>
                         <h5 class="text-muted fw-normal">by <strong class="text-dark">{{ book.author.name }}</strong></h5>
                     </div>
                     <div>
                         {% if book.is_available %}
-                            <span class="badge bg-success fs-6 px-3 py-2 rounded-pill">
-                                <i class="bi bi-check-circle me-1"></i> {{ book.available_copies }} of {{ book.total_copies }} Available
+                            <span class="badge bg-success fs-6 px-3 py-2 rounded-pill shadow-sm">
+                                <i class="bi bi-check-circle-fill me-1"></i> {{ book.available_copies }} of {{ book.total_copies }} Available
                             </span>
                         {% else %}
-                            <span class="badge bg-danger fs-6 px-3 py-2 rounded-pill">
-                                <i class="bi bi-x-circle me-1"></i> Out of Stock (0 Available)
+                            <span class="badge bg-danger fs-6 px-3 py-2 rounded-pill shadow-sm">
+                                <i class="bi bi-x-circle-fill me-1"></i> Out of Stock (0 Copies on Shelf)
                             </span>
                         {% endif %}
                     </div>
                 </div>
 
+                <!-- Book Synopsis / Description -->
+                {% if book.description %}
+                    <div class="my-3">
+                        <h6 class="fw-bold text-uppercase small text-muted mb-2"><i class="bi bi-card-text text-warning me-1"></i> Synopsis &amp; Book Overview</h6>
+                        <p class="text-secondary leading-relaxed mb-0" style="font-size: 0.95rem; line-height: 1.6;">
+                            {{ book.description }}
+                        </p>
+                    </div>
+                {% endif %}
+
+                <!-- Metadata Row -->
                 <div class="my-3 py-3 border-top border-bottom">
-                    <div class="row g-3">
-                        <div class="col-sm-4">
-                            <small class="text-muted text-uppercase d-block fw-semibold">ISBN Identifier</small>
-                            <span class="font-monospace fw-bold">{{ book.isbn }}</span>
+                    <div class="row g-3 text-center text-sm-start">
+                        <div class="col-6 col-sm-3">
+                            <small class="text-muted text-uppercase d-block fw-semibold" style="font-size: 0.72rem;">ISBN Identifier</small>
+                            <span class="font-monospace fw-bold text-dark">{{ book.isbn }}</span>
                         </div>
-                        <div class="col-sm-4">
-                            <small class="text-muted text-uppercase d-block fw-semibold">Total Stock</small>
-                            <span class="fw-bold">{{ book.total_copies }} copies</span>
+                        <div class="col-6 col-sm-3">
+                            <small class="text-muted text-uppercase d-block fw-semibold" style="font-size: 0.72rem;">Total Copies</small>
+                            <span class="fw-bold text-dark">{{ book.total_copies }} copies</span>
                         </div>
-                        <div class="col-sm-4">
-                            <small class="text-muted text-uppercase d-block fw-semibold">Copies on Loan</small>
-                            <span class="fw-bold">{{ book.issued_copies }} checked out</span>
+                        <div class="col-6 col-sm-3">
+                            <small class="text-muted text-uppercase d-block fw-semibold" style="font-size: 0.72rem;">Currently Checked Out</small>
+                            <span class="fw-bold text-dark">{{ book.issued_copies }} copies</span>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <small class="text-muted text-uppercase d-block fw-semibold" style="font-size: 0.72rem;">Standard Loan</small>
+                            <span class="fw-bold text-dark">14 Calendar Days</span>
                         </div>
                     </div>
                 </div>
 
                 {% if book.author.biography %}
                     <div class="mb-4">
-                        <h6 class="fw-bold text-muted text-uppercase small">About the Author</h6>
-                        <p class="text-secondary small mb-0">{{ book.author.biography }}</p>
+                        <h6 class="fw-bold text-muted text-uppercase small mb-1"><i class="bi bi-person-lines-fill text-muted me-1"></i> About Author: {{ book.author.name }}</h6>
+                        <p class="text-muted small mb-0">{{ book.author.biography }}</p>
                     </div>
                 {% endif %}
 
-                <div class="mt-auto d-flex flex-wrap gap-2 pt-2">
-                    {% if book.is_available %}
-                        <a href="{% url 'issue_specific_book' book.id %}" class="btn btn-primary-custom px-4">
-                            <i class="bi bi-box-arrow-up-right me-1"></i> Issue This Book
-                        </a>
-                    {% else %}
-                        <button class="btn btn-secondary px-4" disabled>
-                            <i class="bi bi-slash-circle me-1"></i> Cannot Issue (0 Copies in Stock)
-                        </button>
+                <!-- Status Badges & Action Button Cluster -->
+                <div class="mt-auto pt-3">
+                    {% if user_pending_request %}
+                        <div class="alert alert-warning py-2 px-3 mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-hourglass-split fs-5"></i>
+                            <div>
+                                <strong>Borrowing Request Pending:</strong> You requested this book on {{ user_pending_request.request_date|date:"M d, Y" }}. Awaiting librarian approval.
+                            </div>
+                        </div>
+                    {% elif user_active_loan %}
+                        <div class="alert alert-success py-2 px-3 mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-journal-check fs-5"></i>
+                            <div>
+                                <strong>Currently on Loan to You:</strong> Issued on {{ user_active_loan.issue_date|date:"M d, Y" }}, due on <strong>{{ user_active_loan.due_date|date:"M d, Y" }}</strong>.
+                            </div>
+                        </div>
                     {% endif %}
-                    <a href="{% url 'catalog' %}" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-left me-1"></i> Back to Catalog
-                    </a>
+
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        {% if user.is_authenticated and not user.is_staff %}
+                            {% if user_pending_request %}
+                                <a href="{% url 'student_dashboard' %}" class="btn btn-warning px-4 fw-bold">
+                                    <i class="bi bi-clock-history me-1"></i> Track in My Library
+                                </a>
+                            {% elif user_active_loan %}
+                                <a href="{% url 'student_dashboard' %}" class="btn btn-success px-4 fw-bold">
+                                    <i class="bi bi-journal-bookmark me-1"></i> View in My Library
+                                </a>
+                            {% elif book.is_available %}
+                                <form method="POST" action="{% url 'borrow_book' book.id %}" class="mb-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-gold px-4 fw-bold">
+                                        <i class="bi bi-journal-plus me-1"></i> Borrow Book
+                                    </button>
+                                </form>
+                            {% else %}
+                                <button class="btn btn-secondary px-4" disabled>
+                                    <i class="bi bi-slash-circle me-1"></i> Out of Stock
+                                </button>
+                            {% endif %}
+                        {% elif not user.is_authenticated %}
+                            {% if book.is_available %}
+                                <a href="{% url 'login' %}?next={% url 'book_detail' book.id %}" class="btn btn-gold px-4 fw-bold">
+                                    <i class="bi bi-journal-plus me-1"></i> Sign In to Borrow
+                                </a>
+                            {% else %}
+                                <button class="btn btn-secondary px-4" disabled>
+                                    <i class="bi bi-slash-circle me-1"></i> Out of Stock
+                                </button>
+                            {% endif %}
+                        {% else %}
+                            <!-- Staff / Librarian Controls -->
+                            {% if book.is_available %}
+                                <a href="{% url 'issue_specific_book' book.id %}" class="btn btn-gold px-4">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> Issue Copy
+                                </a>
+                            {% else %}
+                                <button class="btn btn-secondary px-4" disabled>
+                                    <i class="bi bi-slash-circle me-1"></i> Out of Stock
+                                </button>
+                            {% endif %}
+                            <a href="{% url 'book_edit' book.id %}" class="btn btn-outline-secondary px-3">
+                                <i class="bi bi-pencil-square me-1"></i> Edit Book
+                            </a>
+                        {% endif %}
+
+                        <a href="{% url 'catalog' %}" class="btn btn-outline-secondary px-3">
+                            <i class="bi bi-arrow-left me-1"></i> Back to Catalog
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Active Circulation Tracking -->
+    <!-- Active Circulation Tracking & History -->
     <div class="row g-4">
+        <!-- Currently Borrowed Copies -->
         <div class="col-lg-6">
             <div class="card shadow-sm border-0 rounded-4 h-100">
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i> Currently Checked Out</h5>
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i> Currently Checked Out Copies</h5>
                     <span class="badge bg-secondary rounded-pill">{{ active_loans.count }}</span>
                 </div>
                 <div class="card-body p-0">
                     {% if active_loans %}
                         <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light">
+                            <table class="table table-hover align-middle mb-0 custom-table">
+                                <thead>
                                     <tr>
                                         <th>Member</th>
                                         <th>Issued</th>
                                         <th>Due Date</th>
                                         <th>Status</th>
-                                        <th>Action</th>
+                                        <th class="text-end">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for loan in active_loans %}
                                         <tr>
                                             <td>
-                                                <a href="{% url 'member_dashboard' loan.member.id %}" class="fw-bold text-decoration-none">
+                                                <a href="{% url 'member_dashboard' loan.member.id %}" class="fw-bold text-dark text-decoration-none">
                                                     {{ loan.member.name }}
                                                 </a>
                                                 <div class="small text-muted font-monospace">{{ loan.member.member_id }}</div>
@@ -123,10 +227,10 @@
                                                         OVERDUE ({{ loan.days_overdue }}d)
                                                     </span>
                                                 {% else %}
-                                                    <span class="badge bg-success-subtle text-success">Active</span>
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
                                                 {% endif %}
                                             </td>
-                                            <td>
+                                            <td class="text-end">
                                                 <a href="{% url 'return_specific_record' loan.id %}" class="btn btn-sm btn-outline-primary" title="Process Return">
                                                     Return
                                                 </a>
@@ -139,7 +243,7 @@
                     {% else %}
                         <div class="p-4 text-center text-muted">
                             <i class="bi bi-check2-circle fs-3 text-success d-block mb-1"></i>
-                            No active loans. All physical copies are on shelf.
+                            All {{ book.total_copies }} copies are physically present on shelf.
                         </div>
                     {% endif %}
                 </div>
@@ -150,14 +254,14 @@
         <div class="col-lg-6">
             <div class="card shadow-sm border-0 rounded-4 h-100">
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold"><i class="bi bi-journal-check me-2 text-success"></i> Return History</h5>
-                    <span class="badge bg-light text-dark border">Recent 10</span>
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-journal-check me-2 text-success"></i> Return History (Last 10)</h5>
+                    <span class="badge bg-light text-dark border">{{ past_loans.count }} Returns</span>
                 </div>
                 <div class="card-body p-0">
                     {% if past_loans %}
                         <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light">
+                            <table class="table table-hover align-middle mb-0 custom-table">
+                                <thead>
                                     <tr>
                                         <th>Member</th>
                                         <th>Returned Date</th>
@@ -171,6 +275,7 @@
                                                 <a href="{% url 'member_dashboard' past.member.id %}" class="text-decoration-none text-dark fw-semibold">
                                                     {{ past.member.name }}
                                                 </a>
+                                                <div class="small text-muted font-monospace">{{ past.member.member_id }}</div>
                                             </td>
                                             <td class="small">{{ past.return_date|date:"M d, Y" }}</td>
                                             <td>
@@ -188,7 +293,7 @@
                     {% else %}
                         <div class="p-4 text-center text-muted">
                             <i class="bi bi-info-circle fs-3 d-block mb-1"></i>
-                            No previous return records for this title yet.
+                            No return records recorded for this book yet.
                         </div>
                     {% endif %}
                 </div>
