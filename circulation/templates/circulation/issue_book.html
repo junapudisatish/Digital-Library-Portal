@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Issue Book | Digital Library Circulation{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'catalog' %}" class="text-decoration-none">Catalog</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Issue Book</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-md border-0 rounded-4 overflow-hidden">
+                <div class="card-header bg-primary text-white p-4" style="background: var(--primary-gradient) !important;">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h3 class="fw-bold mb-1"><i class="bi bi-box-arrow-up-right me-2"></i> Issue Book to Member</h3>
+                            <p class="mb-0 text-white-50">Assign book copy, configure 14-day loan term, and record checkout.</p>
+                        </div>
+                        <span class="badge bg-white text-primary px-3 py-2 rounded-pill fw-bold">
+                            Standard Loan: 14 Days
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
+                            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                            <div>
+                                {% for error in form.non_field_errors %}
+                                    <p class="mb-0">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <form method="POST" id="issueForm" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Select Book -->
+                        <div class="mb-4">
+                            <label for="{{ form.book.id_for_label }}" class="form-label fw-bold d-flex justify-content-between">
+                                <span><i class="bi bi-book text-primary me-1"></i> Select Book Title</span>
+                                <span class="text-muted small">Only titles with available copies &gt; 0 are shown</span>
+                            </label>
+                            {{ form.book }}
+                            {% if form.book.errors %}
+                                <div class="text-danger small mt-1">{{ form.book.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">Choose from currently available inventory copies.</div>
+                        </div>
+
+                        <!-- Select Member -->
+                        <div class="mb-4">
+                            <label for="{{ form.member.id_for_label }}" class="form-label fw-bold d-flex justify-content-between">
+                                <span><i class="bi bi-person text-primary me-1"></i> Select Registered Member</span>
+                                <a href="{% url 'member_create' %}" class="small text-decoration-none">
+                                    <i class="bi bi-plus-circle me-1"></i> Register New Member
+                                </a>
+                            </label>
+                            {{ form.member }}
+                            {% if form.member.errors %}
+                                <div class="text-danger small mt-1">{{ form.member.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Dates Section with Interactive Due-Date Preview -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="{{ form.issue_date.id_for_label }}" class="form-label fw-bold">
+                                    <i class="bi bi-calendar-event text-primary me-1"></i> Issue Date
+                                </label>
+                                {{ form.issue_date }}
+                                {% if form.issue_date.errors %}
+                                    <div class="text-danger small mt-1">{{ form.issue_date.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">Defaults to today's date.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="{{ form.due_date.id_for_label }}" class="form-label fw-bold">
+                                    <i class="bi bi-calendar-check text-success me-1"></i> Due Date (14 Days)
+                                </label>
+                                {{ form.due_date }}
+                                {% if form.due_date.errors %}
+                                    <div class="text-danger small mt-1">{{ form.due_date.errors.0 }}</div>
+                                {% endif %}
+                                <div class="form-text">Calculated automatically (Issue Date + 14 days).</div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Live Due Date Badge -->
+                        <div class="alert alert-info border-0 rounded-3 mb-4 d-flex align-items-center gap-3">
+                            <i class="bi bi-info-circle-fill fs-3 text-primary"></i>
+                            <div>
+                                <strong id="duePreviewText">Default Loan Period: 14 Days</strong>
+                                <div class="small text-muted">Overdue fines apply at <strong>${{ daily_fine_rate }}/day</strong> for items returned after the due date.</div>
+                            </div>
+                        </div>
+
+                        <!-- Form Submission -->
+                        <div class="d-flex gap-3 justify-content-end pt-3 border-top">
+                            <a href="{% url 'catalog' %}" class="btn btn-outline-secondary px-4">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary-custom px-5">
+                                <i class="bi bi-check2-circle me-1"></i> Confirm & Issue Book
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: digital-library-demo
+    runtime: python
+    rootDir: .
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate && python create_superuser.py"
+    startCommand: "python manage.py migrate && python create_superuser.py && gunicorn library_portal.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: WEB_CONCURRENCY
+        value: 2

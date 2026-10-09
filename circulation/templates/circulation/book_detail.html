@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book.title }} | Book Details{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'catalog' %}" class="text-decoration-none">Catalog</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ book.title }}</li>
+        </ol>
+    </nav>
+
+    <!-- Book Header Card -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+        <div class="row g-0">
+            <div class="col-md-3 bg-dark d-flex align-items-center justify-content-center p-3">
+                {% if book.cover_url %}
+                    <img src="{{ book.cover_url }}" alt="{{ book.title }}" class="img-fluid rounded-3 shadow" style="max-height: 320px; object-fit: cover;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';">
+                {% else %}
+                    <div class="text-white-50 text-center py-5">
+                        <i class="bi bi-book display-1"></i>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-md-9 p-4 p-lg-5 d-flex flex-column">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                    <div>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-2">{{ book.genre }}</span>
+                        <h1 class="h2 fw-bold text-dark mb-1">{{ book.title }}</h1>
+                        <h5 class="text-muted fw-normal">by <strong class="text-dark">{{ book.author.name }}</strong></h5>
+                    </div>
+                    <div>
+                        {% if book.is_available %}
+                            <span class="badge bg-success fs-6 px-3 py-2 rounded-pill">
+                                <i class="bi bi-check-circle me-1"></i> {{ book.available_copies }} of {{ book.total_copies }} Available
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger fs-6 px-3 py-2 rounded-pill">
+                                <i class="bi bi-x-circle me-1"></i> Out of Stock (0 Available)
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="my-3 py-3 border-top border-bottom">
+                    <div class="row g-3">
+                        <div class="col-sm-4">
+                            <small class="text-muted text-uppercase d-block fw-semibold">ISBN Identifier</small>
+                            <span class="font-monospace fw-bold">{{ book.isbn }}</span>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-muted text-uppercase d-block fw-semibold">Total Stock</small>
+                            <span class="fw-bold">{{ book.total_copies }} copies</span>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-muted text-uppercase d-block fw-semibold">Copies on Loan</small>
+                            <span class="fw-bold">{{ book.issued_copies }} checked out</span>
+                        </div>
+                    </div>
+                </div>
+
+                {% if book.author.biography %}
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-muted text-uppercase small">About the Author</h6>
+                        <p class="text-secondary small mb-0">{{ book.author.biography }}</p>
+                    </div>
+                {% endif %}
+
+                <div class="mt-auto d-flex flex-wrap gap-2 pt-2">
+                    {% if book.is_available %}
+                        <a href="{% url 'issue_specific_book' book.id %}" class="btn btn-primary-custom px-4">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> Issue This Book
+                        </a>
+                    {% else %}
+                        <button class="btn btn-secondary px-4" disabled>
+                            <i class="bi bi-slash-circle me-1"></i> Cannot Issue (0 Copies in Stock)
+                        </button>
+                    {% endif %}
+                    <a href="{% url 'catalog' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Catalog
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Circulation Tracking -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i> Currently Checked Out</h5>
+                    <span class="badge bg-secondary rounded-pill">{{ active_loans.count }}</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if active_loans %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Member</th>
+                                        <th>Issued</th>
+                                        <th>Due Date</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for loan in active_loans %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'member_dashboard' loan.member.id %}" class="fw-bold text-decoration-none">
+                                                    {{ loan.member.name }}
+                                                </a>
+                                                <div class="small text-muted font-monospace">{{ loan.member.member_id }}</div>
+                                            </td>
+                                            <td class="small">{{ loan.issue_date|date:"M d, Y" }}</td>
+                                            <td class="small font-monospace fw-semibold">{{ loan.due_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                {% if loan.is_overdue %}
+                                                    <span class="badge badge-overdue">
+                                                        OVERDUE ({{ loan.days_overdue }}d)
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-success-subtle text-success">Active</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'return_specific_record' loan.id %}" class="btn btn-sm btn-outline-primary" title="Process Return">
+                                                    Return
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-check2-circle fs-3 text-success d-block mb-1"></i>
+                            No active loans. All physical copies are on shelf.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Circulation History -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-journal-check me-2 text-success"></i> Return History</h5>
+                    <span class="badge bg-light text-dark border">Recent 10</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if past_loans %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Member</th>
+                                        <th>Returned Date</th>
+                                        <th>Fine Assessed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for past in past_loans %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'member_dashboard' past.member.id %}" class="text-decoration-none text-dark fw-semibold">
+                                                    {{ past.member.name }}
+                                                </a>
+                                            </td>
+                                            <td class="small">{{ past.return_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                {% if past.fine_amount > 0 %}
+                                                    <span class="badge bg-danger-subtle text-danger font-monospace">${{ past.fine_amount }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-muted border">$0.00</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-info-circle fs-3 d-block mb-1"></i>
+                            No previous return records for this title yet.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

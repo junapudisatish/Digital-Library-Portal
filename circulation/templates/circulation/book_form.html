@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} | Digital Library{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'catalog' %}" class="text-decoration-none">Catalog</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-md border-0 rounded-4 overflow-hidden">
+                <div class="card-header bg-primary text-white p-4" style="background: var(--primary-gradient) !important;">
+                    <h3 class="fw-bold mb-1"><i class="bi bi-book me-2"></i> {{ title }}</h3>
+                    <p class="mb-0 text-white-50">Add a new book title into the digital library circulation catalog.</p>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger mb-4">
+                            {% for error in form.non_field_errors %}
+                                <p class="mb-0">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Title</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Author</label>
+                            {{ form.author }}
+                            {% if form.author.errors %}<div class="text-danger small">{{ form.author.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">ISBN</label>
+                                {{ form.isbn }}
+                                {% if form.isbn.errors %}<div class="text-danger small">{{ form.isbn.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Genre</label>
+                                {{ form.genre }}
+                                {% if form.genre.errors %}<div class="text-danger small">{{ form.genre.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Total Copies</label>
+                                {{ form.total_copies }}
+                                {% if form.total_copies.errors %}<div class="text-danger small">{{ form.total_copies.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Available Copies</label>
+                                {{ form.available_copies }}
+                                {% if form.available_copies.errors %}<div class="text-danger small">{{ form.available_copies.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Cover Image URL</label>
+                            {{ form.cover_url }}
+                            {% if form.cover_url.errors %}<div class="text-danger small">{{ form.cover_url.errors.0 }}</div>{% endif %}
+                            <div class="form-text">Direct URL to book cover thumbnail (e.g. Unsplash or OpenLibrary).</div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                            <a href="{% url 'catalog' %}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary-custom px-4">
+                                <i class="bi bi-check2-circle me-1"></i> Save Book
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

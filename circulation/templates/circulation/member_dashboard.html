@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}{{ member.name }} | Member Circulation Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'member_list' %}" class="text-decoration-none">Members</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ member.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Member Profile Header -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-4 p-md-5">
+            <div class="row align-items-center gy-4">
+                <div class="col-md-7">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center shadow-sm" style="width: 64px; height: 64px; font-size: 1.75rem; background: var(--primary-gradient) !important;">
+                            {{ member.name|slice:":1" }}
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <h1 class="h3 fw-bold mb-0">{{ member.name }}</h1>
+                                <span class="badge bg-light text-dark border font-monospace">{{ member.member_id }}</span>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <i class="bi bi-envelope me-1"></i> {{ member.email }}
+                                {% if member.phone %} &bull; <i class="bi bi-telephone ms-1 me-1"></i> {{ member.phone }}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="small text-muted">
+                        <i class="bi bi-calendar-check me-1"></i> Member Since: <strong>{{ member.joined_date|date:"F d, Y" }}</strong>
+                    </div>
+                </div>
+
+                <!-- Stats summary badges -->
+                <div class="col-md-5">
+                    <div class="row g-2 text-center">
+                        <div class="col-4">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <div class="fs-4 fw-bold text-primary">{{ active_records.count }}</div>
+                                <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Active Loans</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <div class="fs-4 fw-bold {% if overdue_count > 0 %}text-danger{% else %}text-success{% endif %}">
+                                    {{ overdue_count }}
+                                </div>
+                                <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Overdue</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <div class="fs-4 fw-bold {% if grand_total_fines > 0 %}text-danger{% else %}text-muted{% endif %}">
+                                    ${{ grand_total_fines|floatformat:2 }}
+                                </div>
+                                <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Total Fines</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overdue Alert Notification Banner -->
+    {% if overdue_count > 0 %}
+        <div class="alert alert-danger shadow-sm border-0 rounded-4 p-4 mb-4 d-flex align-items-start gap-3">
+            <i class="bi bi-exclamation-octagon-fill fs-2 text-danger flex-shrink-0"></i>
+            <div>
+                <h5 class="fw-bold text-danger mb-1">Overdue Circulation Alert!</h5>
+                <p class="mb-2">
+                    This member has <strong>{{ overdue_count }} book(s)</strong> that have exceeded the 14-day loan term. 
+                    Accrued estimated overdue fine: <strong class="text-danger">${{ total_accrued_fines|floatformat:2 }}</strong> (${{ daily_fine_rate }}/day overdue).
+                </p>
+                <div class="small text-muted">Please process returns immediately to prevent additional daily fines.</div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Active Borrowed Books Section -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-book-half me-2 text-primary"></i> Currently Borrowed Books ({{ active_records.count }})</h5>
+            <a href="{% url 'issue_book' %}" class="btn btn-sm btn-primary-custom">
+                <i class="bi bi-plus-lg me-1"></i> Issue Another Book
+            </a>
+        </div>
+        <div class="card-body p-0">
+            {% if active_records %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 custom-table">
+                        <thead>
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Issue Date</th>
+                                <th>Due Date</th>
+                                <th>Overdue Status</th>
+                                <th>Accrued Fine</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for loan in active_records %}
+                                <tr class="{% if loan.is_overdue %}table-danger table-opacity-25{% endif %}">
+                                    <td>
+                                        <div class="d-flex align-items-center gap-3">
+                                            {% if loan.book.cover_url %}
+                                                <img src="{{ loan.book.cover_url }}" alt="Cover" class="rounded shadow-sm" style="width: 42px; height: 56px; object-fit: cover;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';">
+                                            {% else %}
+                                                <div class="bg-secondary bg-opacity-25 rounded d-flex align-items-center justify-content-center text-muted" style="width: 42px; height: 56px;">
+                                                    <i class="bi bi-book"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <a href="{% url 'book_detail' loan.book.id %}" class="fw-bold text-dark text-decoration-none">
+                                                    {{ loan.book.title }}
+                                                </a>
+                                                <div class="small text-muted">by {{ loan.book.author.name }}</div>
+                                                <div class="small font-monospace text-muted">ISBN: {{ loan.book.isbn }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="small">{{ loan.issue_date|date:"M d, Y" }}</td>
+                                    <td class="small font-monospace fw-bold">{{ loan.due_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        {% if loan.is_overdue %}
+                                            <span class="badge badge-overdue p-2">
+                                                <i class="bi bi-clock-history me-1"></i> OVERDUE ({{ loan.days_overdue }} days)
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle p-2">
+                                                <i class="bi bi-shield-check me-1"></i> On Track
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if loan.current_estimated_fine > 0 %}
+                                            <span class="fw-bold text-danger font-monospace fs-6">
+                                                ${{ loan.current_estimated_fine|floatformat:2 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted font-monospace">$0.00</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{% url 'return_specific_record' loan.id %}" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-arrow-return-left me-1"></i> Return Book
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="p-5 text-center text-muted">
+                    <i class="bi bi-journal-check display-4 text-success d-block mb-2"></i>
+                    <h5>No active borrowings</h5>
+                    <p class="mb-3">This member currently has no books checked out.</p>
+                    <a href="{% url 'issue_book' %}" class="btn btn-primary-custom btn-sm">Issue a Book Now</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Complete Borrowing History Section -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-success"></i> Borrowing History (Returned Books)</h5>
+            <span class="badge bg-light text-muted border">{{ past_records.count }} Past Loans</span>
+        </div>
+        <div class="card-body p-0">
+            {% if past_records %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 custom-table">
+                        <thead>
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Issue Date</th>
+                                <th>Due Date</th>
+                                <th>Return Date</th>
+                                <th>Fine Assessed</th>
+                                <th>Return Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for past in past_records %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'book_detail' past.book.id %}" class="fw-bold text-dark text-decoration-none">
+                                            {{ past.book.title }}
+                                        </a>
+                                        <div class="small text-muted">by {{ past.book.author.name }}</div>
+                                    </td>
+                                    <td class="small">{{ past.issue_date|date:"M d, Y" }}</td>
+                                    <td class="small font-monospace">{{ past.due_date|date:"M d, Y" }}</td>
+                                    <td class="small font-monospace">{{ past.return_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        {% if past.fine_amount > 0 %}
+                                            <span class="badge bg-danger-subtle text-danger font-monospace px-2 py-1">
+                                                ${{ past.fine_amount }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-light text-muted border font-monospace px-2 py-1">$0.00</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if past.fine_amount > 0 %}
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                                Late Return (Fine Incurred)
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                Returned On Time
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="p-4 text-center text-muted">
+                    <i class="bi bi-hourglass-split fs-3 d-block mb-1"></i>
+                    No previous loan history recorded yet for this member.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

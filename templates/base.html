@@ -1,0 +1,152 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Digital Library & E-Book Circulation Portal. Browse catalog, issue and return books, track due dates, and calculate overdue fines.">
+    <title>{% block title %}Digital Library & E-Book Circulation Portal{% endblock %}</title>
+
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+
+    <!-- Main Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'catalog' %}">
+                <span class="navbar-brand-badge">
+                    <i class="bi bi-book-half"></i> LIBRA
+                </span>
+                <span class="fw-bold tracking-tight text-white d-none d-sm-inline">Digital Library Portal</span>
+            </a>
+
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
+                aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="mainNavbar">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}"
+                            href="{% url 'catalog' %}">
+                            <i class="bi bi-grid-3x3-gap me-1"></i> Catalog
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'issue_book' %}active{% endif %}"
+                            href="{% url 'issue_book' %}">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> Issue Book
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'return_book' %}active{% endif %}"
+                            href="{% url 'return_book' %}">
+                            <i class="bi bi-arrow-return-left me-1"></i> Return Book
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'member_list' or request.resolver_match.url_name == 'member_dashboard' %}active{% endif %}"
+                            href="{% url 'member_list' %}">
+                            <i class="bi bi-people me-1"></i> Members
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'calculator' %}active{% endif %}"
+                            href="{% url 'calculator' %}">
+                            <i class="bi bi-calculator me-1"></i> Due Calculator
+                        </a>
+                    </li>
+                    <li class="nav-item ms-lg-2">
+                        <a class="btn btn-sm btn-outline-light px-3 rounded-pill" href="/admin/" target="_blank">
+                            <i class="bi bi-shield-lock me-1"></i> Admin
+                        </a>
+
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Global Flash Messages Notification Area -->
+    <div class="container mt-3">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm d-flex align-items-center justify-content-between"
+            role="alert">
+            <div class="d-flex align-items-center gap-2">
+                {% if message.tags == 'success' %}
+                <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                {% elif message.tags == 'error' or message.tags == 'danger' %}
+                <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+                {% elif message.tags == 'warning' %}
+                <i class="bi bi-exclamation-circle-fill fs-5 text-warning"></i>
+                {% else %}
+                <i class="bi bi-info-circle-fill fs-5 text-primary"></i>
+                {% endif %}
+                <span>{{ message }}</span>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Main Content Block -->
+    <main class="flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row align-items-center gy-3">
+                <div class="col-md-6 text-center text-md-start">
+                    <div class="d-flex align-items-center gap-2 justify-content-center justify-content-md-start">
+                        <span class="badge bg-primary px-2 py-1"><i class="bi bi-book"></i> LIBRA</span>
+                        <span class="text-white fw-bold">Digital Library & E-Book Circulation Portal</span>
+                    </div>
+                    <p class="small text-muted mb-0 mt-1">Full-Stack Django & SQLite Circulation System with WhiteNoise
+                        & Gunicorn.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <div class="d-flex gap-3 justify-content-center justify-content-md-end align-items-center">
+                        <a href="{% url 'seed_data' %}" class="btn btn-sm btn-outline-secondary text-light">
+                            <i class="bi bi-database-fill-gear me-1"></i> Reset / Seed Demo Data
+                        </a>
+                        <span class="badge bg-secondary">Render Ready</span>
+                    </div>
+                </div>
+            </div>
+            <hr class="border-secondary my-3 opacity-25">
+            <div class="text-center small text-muted">
+                &copy; {% now "Y" %} Digital Library Portal. Powered by Django ORM & SQLite.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom Application JS -->
+    <script src="{% static 'js/app.js' %}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+
+</html>
