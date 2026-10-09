@@ -1,4 +1,4 @@
-# CAPSTONE PROJECT 3: Digital Library & E-Book Circulation Portal
+# Digital Library & E-Book Circulation Portal
 
 A modern, responsive full-stack **Digital Library & E-Book Circulation Portal** built with **Django**, **Bootstrap 5**, **JavaScript (ES6+)**, and **SQLite**. Deployed and production-ready for **Render** using **WhiteNoise** and **Gunicorn**.
 
@@ -9,23 +9,21 @@ A modern, responsive full-stack **Digital Library & E-Book Circulation Portal** 
 - **Dynamic Book Catalog**: Browse titles with high-definition book covers, author metadata, genre tags, and availability status pills.
 - **Instant Client-Side Search & Filter**: Real-time JavaScript search filtering by title, author, genre, and ISBN without full-page reloads.
 - **Book Issue Workflow**:
-  - Automatically verifies available inventory (`available_copies > 0`).
+  - Automatically verifies available inventory
   - Decrements available stock upon checkout.
   - Automatically calculates and sets the standard **14-day loan term due date**.
 - **Book Return Workflow & Fine Assessment**:
-  - Replenishes available stock upon return (`available_copies + 1`).
+  - Replenishes available stock upon return
   - Interactive overdue calculation preview widget before submission.
-  - Computes overdue fines based on daily penalty rates (`$1.00 / day`).
+  - Computes overdue fines based on daily penalty rates
 - **Patron / Member Dashboard**:
-  - Live loan status tracking (On-track vs Overdue).
+  - Live loan status tracking 
   - Prominent overdue alert banners showing overdue durations and calculated fines.
   - One-click return processing buttons directly from active loan rows.
   - Complete borrowing history with fine assessment records.
 - **Interactive Due-Date & Fine Calculator**:
   - Standalone simulation tool with configurable loan terms (7, 14, 21, 30 days) and date pickers.
   - Real-time client-side overdue day computation and fine evaluation.
-- **Admin Management Portal (`/admin/`)**:
-  - Custom list displays, search fields, filters, and read-only calculated status indicators.
 - **Automated Sample Data Seeding**:
   - Populate 7 authors, 8 classic & modern books with cover images, 4 members, and realistic circulation records (including active on-time, active overdue, and past returned loans).
 
@@ -112,11 +110,6 @@ pip install -r requirements.txt
 python manage.py migrate
 python create_superuser.py
 ```
-> **Default Admin Credentials**:
-> - Username: `admin`
-> - Email: `admin@library.demo`
-> - Password: `admin123`
-
 ### Step 5: Seed Demo Dataset (Optional)
 ```bash
 python manage.py seed_library
@@ -129,63 +122,6 @@ python manage.py runserver 127.0.0.1:8000
 Open **`http://127.0.0.1:8000/`** in your browser.
 
 ---
-
-## 6. Render Deployment Guide
-
-This project is configured with a Render Blueprint (`render.yaml`).
-
-### Files Created for Render:
-- **`requirements.txt`**:
-  ```text
-  Django>=6.0
-  Gunicorn>=21.2.0
-  whitenoise>=6.6.0
-  ```
-- **`render.yaml`**:
-  ```yaml
-  services:
-    - type: web
-      name: digital-library-demo
-      runtime: python
-      rootDir: .
-      buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate && python create_superuser.py"
-      startCommand: "python manage.py migrate && python create_superuser.py && gunicorn library_portal.wsgi:application"
-      envVars:
-        - key: PYTHON_VERSION
-          value: 3.11.0
-        - key: WEB_CONCURRENCY
-          value: 2
-  ```
-- **`library_portal/settings.py`**:
-  - `DEBUG = os.environ.get("RENDER", "False") != "True"`
-  - `ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".onrender.com", "*"]`
-  - `CSRF_TRUSTED_ORIGINS = ["https://*.onrender.com"]`
-  - `WhiteNoiseMiddleware` configured for static asset streaming.
-  - `DATABASES` set to Django's built-in SQLite engine.
-
-### Deployment Steps:
-1. Push this repository to GitHub:
-   ```bash
-   git add .
-   git commit -m "Prepare Django project for Render"
-   git push origin main
-   ```
-2. In [Render](https://render.com), click **New +** &rarr; **Blueprint** (or **Web Service**).
-3. Connect your GitHub repository.
-4. If setting up manually as a Web Service:
-   - **Runtime**: `Python`
-   - **Build Command**: `pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate && python create_superuser.py`
-   - **Start Command**: `python manage.py migrate && python create_superuser.py && gunicorn library_portal.wsgi:application`
-   - **Environment Variables**:
-     - `SECRET_KEY`: `<your-random-secret-key>`
-     - `RENDER`: `True`
-5. Click **Create Web Service**. Once deployed, access the app at `https://<service-name>.onrender.com`.
-
-> **Note on SQLite on Render**:
-> Render's free tier instances use an ephemeral filesystem. SQLite data resets on instance restart or redeployment. This is the expected design for this student demonstration assignment.
-
----
-
 ## 7. Automated Test Suite
 
 Run the 12 automated unit and integration tests:
