@@ -29,10 +29,7 @@ urlpatterns = [
     path('password-reset/complete/', views.CustomPasswordResetCompleteView.as_view(), name='password_reset_complete'),
     path('student/dashboard/', views.student_dashboard_view, name='student_dashboard'),
 
-    # Staff / Librarian Management Hub
-    path('staff/', views.staff_dashboard_view, name='staff_dashboard'),
-
-    # Members Directory (Librarian/Staff overview)
+    # Members Directory (Administrator overview)
     path('members/', views.member_list_view, name='member_list'),
     path('members/<int:member_id>/', views.member_dashboard_view, name='member_dashboard'),
     path('members/add/', views.member_create_view, name='member_create'),

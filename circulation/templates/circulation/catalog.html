@@ -7,8 +7,8 @@
 <!-- Welcoming Hero Section & Real-Time Stats -->
 <section class="hero-banner mb-4">
     <div class="container position-relative">
-        <div class="row align-items-center gy-4">
-            <div class="col-lg-7 text-center text-lg-start">
+        <div class="row align-items-center mb-4">
+            <div class="col-lg-10 col-xl-9 text-center text-lg-start">
                 <span class="hero-gold-pill mb-3">
                     <i class="bi bi-stars"></i> Smart Library & E-Book Circulation Portal
                 </span>
@@ -20,15 +20,12 @@
                 </p>
                 <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-lg-start">
                     {% if user.is_authenticated %}
-                        {% if user.is_staff %}
-                            <a href="{% url 'issue_book' %}" class="btn btn-gold shadow-sm">
-                                <i class="bi bi-box-arrow-up-right me-1"></i> Issue a Book
+                        {% if user.is_superuser or user.is_staff %}
+                            <a href="/admin/" class="btn btn-gold shadow-sm">
+                                <i class="bi bi-shield-lock-fill me-1"></i> Django Administration
                             </a>
-                            <a href="{% url 'return_book' %}" class="btn btn-navy">
-                                <i class="bi bi-arrow-return-left me-1"></i> Return Desk
-                            </a>
-                            <a href="{% url 'book_create' %}" class="btn btn-outline-light">
-                                <i class="bi bi-plus-lg me-1"></i> Add Title
+                            <a href="{% url 'calculator' %}" class="btn btn-outline-light">
+                                <i class="bi bi-calculator me-1"></i> Due Calculator
                             </a>
                         {% else %}
                             <a href="{% url 'student_dashboard' %}" class="btn btn-gold shadow-sm">
@@ -45,56 +42,43 @@
                         <a href="{% url 'login' %}" class="btn btn-outline-light">
                             <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Portal
                         </a>
-                        <a href="{% url 'staff_dashboard' %}" class="btn btn-navy">
-                            <i class="bi bi-shield-lock me-1"></i> Staff Hub
-                        </a>
                     {% endif %}
                 </div>
             </div>
+        </div>
 
-            <!-- Real-Time Metrics Column -->
-            <div class="col-lg-5">
-                <div class="row g-2">
-                    <div class="col-6">
-                        <div class="stat-card">
-                            <div class="stat-icon gold"><i class="bi bi-book"></i></div>
-                            <div>
-                                <div class="stat-value">{{ total_titles }}</div>
-                                <div class="stat-label">Unique Titles</div>
-                            </div>
-                        </div>
+        <!-- Real-Time Metrics Row (4 Equal Grid Columns) -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon gold"><i class="bi bi-book"></i></div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ total_titles }}</div>
+                    <div class="stat-label">Unique Titles</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon emerald"><i class="bi bi-check2-circle"></i></div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ available_inventory }}</div>
+                    <div class="stat-label">Available Copies</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon navy"><i class="bi bi-journal-arrow-up"></i></div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ active_loans }}</div>
+                    <div class="stat-label">Active Loans</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon {% if overdue_loans > 0 %}rose{% else %}amber{% endif %}">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value {% if overdue_loans > 0 %}text-danger{% endif %}">
+                        {{ overdue_loans }}
                     </div>
-                    <div class="col-6">
-                        <div class="stat-card">
-                            <div class="stat-icon emerald"><i class="bi bi-check2-circle"></i></div>
-                            <div>
-                                <div class="stat-value">{{ available_inventory }}</div>
-                                <div class="stat-label">Available Copies</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="stat-card">
-                            <div class="stat-icon navy"><i class="bi bi-journal-arrow-up"></i></div>
-                            <div>
-                                <div class="stat-value">{{ active_loans }}</div>
-                                <div class="stat-label">Active Loans</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="stat-card">
-                            <div class="stat-icon {% if overdue_loans > 0 %}rose{% else %}amber{% endif %}">
-                                <i class="bi bi-exclamation-triangle"></i>
-                            </div>
-                            <div>
-                                <div class="stat-value {% if overdue_loans > 0 %}text-danger{% endif %}">
-                                    {{ overdue_loans }}
-                                </div>
-                                <div class="stat-label">Overdue Loans</div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="stat-label">Overdue Loans</div>
                 </div>
             </div>
         </div>

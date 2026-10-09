@@ -203,22 +203,24 @@ def book_borrow_request_view(request, book_id):
 @login_required
 def request_approve_view(request, record_id):
     """
-    Librarian approves a pending borrowing request:
+    Administrator approves a pending borrowing request:
     1. Rechecks stock inside atomic transaction.
     2. Decrements available copies by 1.
     3. Sets status='APPROVED', issue_date=today, due_date=today+14 days.
-    4. Records approving librarian.
+    4. Records approving administrator.
     """
     if not (request.user.is_staff or request.user.is_superuser):
-        messages.error(request, "Access restricted to authorized librarians and staff.")
+        messages.error(request, "Access restricted to authorized administrators.")
         return redirect('student_dashboard')
+
+    next_url = request.POST.get('next') or request.GET.get('next') or '/admin/circulation/circulationrecord/'
 
     if request.method == 'POST':
         with transaction.atomic():
             record = get_object_or_404(CirculationRecord.objects.select_for_update(), id=record_id)
             if record.status != 'PENDING':
                 messages.warning(request, f"Request #{record.id} is already {record.get_status_display()}.")
-                return redirect('staff_dashboard')
+                return redirect(next_url)
 
             book = Book.objects.select_for_update().get(id=record.book_id)
             if book.available_copies <= 0:
@@ -226,7 +228,7 @@ def request_approve_view(request, record_id):
                     request,
                     f"Cannot approve request: '{book.title}' currently has 0 copies available in stock."
                 )
-                return redirect('staff_dashboard')
+                return redirect(next_url)
 
             # Decrement stock by exactly 1
             book.available_copies -= 1
@@ -245,27 +247,29 @@ def request_approve_view(request, record_id):
                 f"Request approved! '{book.title}' issued to {record.member.name} ({record.member.member_id}). "
                 f"Due date: {record.due_date.strftime('%b %d, %Y')}."
             )
-    return redirect('staff_dashboard')
+    return redirect(next_url)
 
 
 @login_required
 def request_reject_view(request, record_id):
     """
-    Librarian rejects a pending borrowing request:
-    Marks request as REJECTED, records librarian & rejection reason without altering stock.
+    Administrator rejects a pending borrowing request:
+    Marks request as REJECTED, records administrator & rejection reason without altering stock.
     """
     if not (request.user.is_staff or request.user.is_superuser):
-        messages.error(request, "Access restricted to authorized librarians and staff.")
+        messages.error(request, "Access restricted to authorized administrators.")
         return redirect('student_dashboard')
+
+    next_url = request.POST.get('next') or request.GET.get('next') or '/admin/circulation/circulationrecord/'
 
     if request.method == 'POST':
         with transaction.atomic():
             record = get_object_or_404(CirculationRecord.objects.select_for_update(), id=record_id)
             if record.status != 'PENDING':
                 messages.warning(request, f"Request #{record.id} is already {record.get_status_display()}.")
-                return redirect('staff_dashboard')
+                return redirect(next_url)
 
-            reason = request.POST.get('reason', '').strip() or request.POST.get('rejection_reason', '').strip() or 'Request declined by librarian.'
+            reason = request.POST.get('reason', '').strip() or request.POST.get('rejection_reason', '').strip() or 'Request declined by administrator.'
             record.status = 'REJECTED'
             record.approved_by = request.user
             record.rejection_reason = reason
@@ -275,14 +279,14 @@ def request_reject_view(request, record_id):
                 request,
                 f"Request for '{record.book.title}' by {record.member.name} has been rejected."
             )
-    return redirect('staff_dashboard')
+    return redirect(next_url)
 
 
 @login_required
 def book_issue_view(request, book_id=None):
-    """Direct circulation desk issue workflow for authorized librarians."""
+    """Direct circulation desk issue workflow for authorized administrators."""
     if not (request.user.is_staff or request.user.is_superuser):
-        messages.error(request, "Access restricted to authorized librarians.")
+        messages.error(request, "Access restricted to authorized administrators.")
         return redirect('catalog')
 
     initial_book = None
@@ -337,7 +341,7 @@ def book_issue_view(request, book_id=None):
 def book_return_view(request, record_id=None):
     """Workflow to return a borrowed book and compute overdue fines safely at ₹5/day."""
     if not (request.user.is_staff or request.user.is_superuser):
-        messages.error(request, "Access restricted to authorized librarians.")
+        messages.error(request, "Access restricted to authorized administrators.")
         return redirect('student_dashboard')
 
     selected_record = None
@@ -418,10 +422,10 @@ def student_register_view(request):
 
 
 def student_login_view(request):
-    """Member & Staff Login view without exposed credentials."""
+    """Member & Administrator Login view without exposed credentials."""
     if request.user.is_authenticated:
-        if request.user.is_staff:
-            return redirect('staff_dashboard')
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('/admin/')
         return redirect('student_dashboard')
 
     if request.method == 'POST':
@@ -433,8 +437,8 @@ def student_login_view(request):
             next_url = request.GET.get('next')
             if next_url:
                 return redirect(next_url)
-            if user.is_staff:
-                return redirect('staff_dashboard')
+            if user.is_staff or user.is_superuser:
+                return redirect('/admin/')
             return redirect('student_dashboard')
         else:
             messages.error(request, "Invalid username or password. Please verify your credentials.")
@@ -552,56 +556,12 @@ def student_dashboard_view(request):
     return render(request, 'circulation/student_dashboard.html', context)
 
 
-@login_required
-def staff_dashboard_view(request):
-    """
-    Librarian / Staff Operations Hub:
-    Central dashboard for managing pending borrowing requests, active loans,
-    overdue loans, stock inventory, members, and return processing.
-    """
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.error(request, "Access restricted to authorized library staff.")
-        return redirect('student_dashboard')
-
-    today = timezone.now().date()
-    total_titles = Book.objects.count()
-    total_copies = Book.objects.aggregate(total=Sum('total_copies'))['total'] or 0
-    available_copies = Book.objects.aggregate(total=Sum('available_copies'))['total'] or 0
-    issued_copies = max(0, total_copies - available_copies)
-
-    pending_requests = CirculationRecord.objects.filter(status='PENDING').select_related('book', 'member').order_by('-request_date', '-id')
-    active_loans = CirculationRecord.objects.filter(status='APPROVED', returned=False).select_related('book', 'member').order_by('due_date')
-    overdue_loans = [loan for loan in active_loans if loan.is_overdue]
-    recent_returns = CirculationRecord.objects.filter(returned=True).select_related('book', 'member').order_by('-return_date', '-id')[:6]
-    total_fines_collected = CirculationRecord.objects.filter(returned=True).aggregate(total=Sum('fine_amount'))['total'] or Decimal('0.00')
-    recent_books = Book.objects.select_related('author').order_by('-id')[:8]
-    members = Member.objects.all().order_by('-joined_date')[:8]
-
-    context = {
-        'total_titles': total_titles,
-        'total_copies': total_copies,
-        'available_copies': available_copies,
-        'issued_copies': issued_copies,
-        'registered_members': Member.objects.count(),
-        'pending_requests': pending_requests,
-        'pending_requests_count': pending_requests.count(),
-        'active_loans': active_loans,
-        'active_loans_count': active_loans.count(),
-        'overdue_loans': overdue_loans,
-        'overdue_loans_count': len(overdue_loans),
-        'returned_count': CirculationRecord.objects.filter(returned=True).count(),
-        'recent_returns': recent_returns,
-        'total_fines_collected': total_fines_collected,
-        'recent_books': recent_books,
-        'members': members,
-        'daily_fine_rate': DAILY_FINE_RATE,
-        'today': today,
-    }
-    return render(request, 'circulation/staff_dashboard.html', context)
-
-
 def book_create_view(request):
     """Add a new book to the library catalog."""
+    if not (request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)):
+        messages.error(request, "Access restricted to authorized administrators.")
+        return redirect('login')
+
     if request.method == 'POST':
         form = BookForm(request.POST)
         if form.is_valid():
@@ -615,6 +575,10 @@ def book_create_view(request):
 
 def book_edit_view(request, book_id):
     """Edit existing book details and copy inventory."""
+    if not (request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)):
+        messages.error(request, "Access restricted to authorized administrators.")
+        return redirect('login')
+
     book = get_object_or_404(Book, id=book_id)
     if request.method == 'POST':
         form = BookForm(request.POST, instance=book)
@@ -629,6 +593,10 @@ def book_edit_view(request, book_id):
 
 def member_list_view(request):
     """List all registered members with their borrowing summaries."""
+    if not (request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)):
+        messages.error(request, "Access restricted to authorized administrators.")
+        return redirect('login')
+
     query = request.GET.get('q', '').strip()
     members = Member.objects.all()
 
@@ -652,7 +620,15 @@ def member_dashboard_view(request, member_id):
     Member Dashboard showing active borrowed books, due dates, overdue alerts,
     and complete borrowing history with fines.
     """
+    if not request.user.is_authenticated:
+        return redirect('login')
+
     member = get_object_or_404(Member, id=member_id)
+    if not (request.user.is_staff or request.user.is_superuser):
+        if member.user != request.user:
+            messages.error(request, "Access restricted to your own profile.")
+            return redirect('student_dashboard')
+
     active_records = member.circulation_records.filter(returned=False).select_related('book').order_by('due_date')
     past_records = member.circulation_records.filter(returned=True).select_related('book').order_by('-return_date')
 
@@ -684,6 +660,10 @@ def member_dashboard_view(request, member_id):
 
 def member_create_view(request):
     """Register a new library member."""
+    if not (request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)):
+        messages.error(request, "Access restricted to authorized administrators.")
+        return redirect('login')
+
     if request.method == 'POST':
         form = MemberForm(request.POST)
         if form.is_valid():

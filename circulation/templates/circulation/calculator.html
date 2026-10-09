@@ -134,12 +134,24 @@
 
             <!-- Quick Action Links -->
             <div class="d-flex justify-content-center gap-3 mt-4">
-                <a href="{% url 'staff_dashboard' %}" class="btn btn-navy px-4">
-                    <i class="bi bi-speedometer2 me-1"></i> Librarian Dashboard
+                <a href="{% url 'catalog' %}" class="btn btn-navy px-4">
+                    <i class="bi bi-grid-3x3-gap me-1"></i> Browse Catalog
                 </a>
-                <a href="{% url 'return_book' %}" class="btn btn-gold px-4">
-                    <i class="bi bi-arrow-return-left me-1"></i> Return Desk
-                </a>
+                {% if user.is_authenticated %}
+                    {% if user.is_superuser or user.is_staff %}
+                        <a href="/admin/" class="btn btn-gold px-4">
+                            <i class="bi bi-shield-lock-fill me-1"></i> Django Admin
+                        </a>
+                    {% else %}
+                        <a href="{% url 'student_dashboard' %}" class="btn btn-gold px-4">
+                            <i class="bi bi-journal-bookmark me-1"></i> My Loans
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-gold px-4">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>

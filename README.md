@@ -34,16 +34,16 @@ A comprehensive, production-ready full-stack **Digital Library & E-Book Circulat
     5. Returned Books / Historical Circulation
     6. Rejected Requests (with librarian explanation note)
 
-### 🛡️ Librarian-Approved Book Borrowing Workflow
+### 🛡️ Administrator-Approved Book Borrowing Workflow
 1. **Student Request**: Authenticated student browses the catalog and clicks **Borrow Book**.
 2. **Server Validation**: The server validates book availability, prevents duplicate pending/active loans, and records a `PENDING` request. Available copies are **NOT** decremented at request submission.
-3. **Librarian Review**: Staff views pending requests in the **Librarian Operations Center** (`/staff/`).
-4. **Librarian Approval**:
+3. **Administrator Review**: Administrators review pending requests in the **Django Administration Portal** (`/admin/`).
+4. **Administrator Approval**:
    - Atomic database transaction (`transaction.atomic`) rechecks availability.
    - Decrements `available_copies` by exactly 1.
    - Sets status to `APPROVED`, records issue date, and computes authoritative due date (`issue_date + 14 days`).
-   - Records the approving librarian.
-5. **Librarian Rejection**:
+   - Records the approving administrator.
+5. **Administrator Rejection**:
    - Marks request `REJECTED` and records optional rejection reason for the student.
    - Stock remains untouched.
 
@@ -51,36 +51,36 @@ A comprehensive, production-ready full-stack **Digital Library & E-Book Circulat
 - **Loan Period**: Standard 14 days.
 - **Fine Rate**: ₹5.00 per calendar day overdue (`DAILY_FINE_RATE = Decimal('5.00')`). Grace period: None.
 - **Fine Formula**: `Overdue Days × ₹5.00` (where `Overdue Days = max(0, return_date - due_date)`).
-- **Return Processing (`/return/`)**: Authorized librarians process returns. Available copies increment by exactly 1, and the final fine amount is authoritatively recorded.
+- **Return Processing**: Authorized administrators process returns. Available copies increment by exactly 1, and the final fine amount is authoritatively recorded.
 
-### 🛡️ Librarian / Staff Management Hub (`/staff/`)
-- **8 Real-Time ORM Statistics**: Unique Titles, Total Stock, Available Copies, Registered Members, Pending Requests, Active Loans, Overdue Loans, and Returned Books.
-- **Pending Request Decision Queue**: Review student requests with 1-click Approve or modal Reject.
-- **Overdue Attention Center**: Live list of past-due checkouts with estimated fines requiring immediate return.
-- **Inventory & Copy Management**: Add new titles (`/book/add/`), edit metadata (`/book/<id>/edit/`), and manage stock copy counts.
-- **Members Directory (`/members/`)**: Inspect student borrowing records, contact info, and loan standings.
+### 🛡️ Django Administration Interface (`/admin/`)
+- **Direct Django Admin Access**: Full administrative management available at `/admin/` for authorized superusers.
+- **Bulk Action Tools**: Approve pending requests, reject requests, and process book returns directly from the Circulation Records list in Django Admin.
+- **Catalog & Inventory Management**: Add new books, authors, manage categories, and update copy counts.
+- **Member & User Management**: Manage registered students, library members, and administrator accounts.
+- **Secure Password Management**: Administrators can change their password securely inside the admin interface via `/admin/password_change/` using Django's built-in password validation and hashing.
 
 ---
 
 ## 2. Administrator & Member Authentication Setup
 
 ### Secure Superuser / Admin Setup
-Configure or update the administrator account using the custom Django management command. To protect credentials, passwords should be set via environment variables or entered securely via masked prompt:
+Configure or initialize the administrator account (`admin`) using the safe Django management command. To protect credentials, passwords should be set via environment variables or entered securely via masked prompt:
 
 ```bash
 # Option A: Interactive masked prompt (recommended for local development)
 python manage.py setup_admin --username=admin
 
 # Option B: Via environment variable (recommended for automated deployments & Render)
-export DJANGO_SUPERUSER_PASSWORD="your-secure-password"
+export DJANGO_SUPERUSER_PASSWORD="your-strong-production-password"
 python manage.py setup_admin --username=admin
 ```
-This command is safe and idempotent: if the administrator already exists, its permissions are safely verified without creating duplicate accounts or logging credentials.
+This command is safe, non-destructive, and idempotent: if the administrator already exists, its active permissions are verified while strictly preserving existing credentials.
 
-| Role | Provisioning | Notes |
+| Role | Access Route | Permissions |
 | :--- | :--- | :--- |
-| **Librarian / Superuser** | Configured via `setup_admin` or environment variables | Access to Staff Hub (`/staff/`), Password Change (`/password-change/`), and Django Admin (`/admin/`). |
-| **Student Member** | Self-registration (`/register/`) or administrative creation | Access to personal "My Library" hub (`/student/dashboard/`). |
+| **Administrator (`admin`)** | Django Admin (`/admin/`) | Full management of books, circulation, members, and secure password change (`/admin/password_change/`). |
+| **Student Member** | Portal (`/login/`, `/student/dashboard/`) | Catalog discovery, loan requests, active borrowing tracking, and member password management. |
 
 ---
 

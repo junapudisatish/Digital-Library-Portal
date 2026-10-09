@@ -61,30 +61,11 @@
                     </li>
 
                     {% if user.is_authenticated %}
-                        {% if user.is_staff or user.is_superuser %}
-                            <!-- Staff / Librarian Navigation Links -->
+                        {% if user.is_superuser or user.is_staff %}
+                            <!-- Administrator Navigation Link -->
                             <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.url_name == 'staff_dashboard' %}active{% endif %}"
-                                    href="{% url 'staff_dashboard' %}">
-                                    <i class="bi bi-shield-check"></i> Staff Hub
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.url_name == 'issue_book' %}active{% endif %}"
-                                    href="{% url 'issue_book' %}">
-                                    <i class="bi bi-box-arrow-up-right"></i> Issue
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.url_name == 'return_book' %}active{% endif %}"
-                                    href="{% url 'return_book' %}">
-                                    <i class="bi bi-arrow-return-left"></i> Return
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if request.resolver_match.url_name == 'member_list' %}active{% endif %}"
-                                    href="{% url 'member_list' %}">
-                                    <i class="bi bi-people"></i> Members
+                                <a class="nav-link" href="/admin/">
+                                    <i class="bi bi-shield-lock-fill"></i> Admin Console
                                 </a>
                             </li>
                         {% else %}
@@ -102,8 +83,8 @@
                             <a class="nav-link dropdown-toggle nav-user-pill" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-person-circle"></i>
                                 <span>{{ user.first_name|default:user.username }}</span>
-                                {% if user.is_staff %}
-                                    <span class="badge bg-warning text-dark py-0 px-1 font-monospace" style="font-size: 0.65rem;">Librarian</span>
+                                {% if user.is_superuser or user.is_staff %}
+                                    <span class="badge bg-warning text-dark py-0 px-1 font-monospace" style="font-size: 0.65rem;">Admin</span>
                                 {% else %}
                                     <span class="badge bg-light text-dark py-0 px-1 font-monospace" style="font-size: 0.65rem;">Student</span>
                                 {% endif %}
@@ -113,14 +94,13 @@
                                     <div class="fw-bold small">{{ user.get_full_name|default:user.username }}</div>
                                     <div class="text-muted small font-monospace">{{ user.email }}</div>
                                 </li>
-                                {% if user.is_staff %}
-                                    <li><a class="dropdown-item py-2" href="{% url 'staff_dashboard' %}"><i class="bi bi-speedometer2 me-2 text-primary"></i> Staff Dashboard</a></li>
-                                    <li><a class="dropdown-item py-2" href="{% url 'book_create' %}"><i class="bi bi-plus-circle me-2 text-success"></i> Add New Book</a></li>
-                                    <li><a class="dropdown-item py-2" href="/admin/" target="_blank"><i class="bi bi-gear me-2 text-secondary"></i> Django Admin</a></li>
+                                {% if user.is_superuser or user.is_staff %}
+                                    <li><a class="dropdown-item py-2" href="/admin/"><i class="bi bi-gear me-2 text-primary"></i> Django Administration</a></li>
+                                    <li><a class="dropdown-item py-2" href="/admin/password_change/"><i class="bi bi-key me-2 text-warning"></i> Change Admin Password</a></li>
                                 {% else %}
                                     <li><a class="dropdown-item py-2" href="{% url 'student_dashboard' %}"><i class="bi bi-journal-bookmark me-2 text-primary"></i> My Active Loans</a></li>
+                                    <li><a class="dropdown-item py-2" href="{% url 'password_change' %}"><i class="bi bi-key me-2 text-warning"></i> Change Password</a></li>
                                 {% endif %}
-                                <li><a class="dropdown-item py-2" href="{% url 'password_change' %}"><i class="bi bi-key me-2 text-warning"></i> Change Password</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="POST" action="{% url 'logout' %}" class="px-2">
@@ -134,12 +114,6 @@
                         </li>
                     {% else %}
                         <!-- Anonymous Guest User Links -->
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'staff_dashboard' %}active{% endif %}"
-                                href="{% url 'staff_dashboard' %}">
-                                <i class="bi bi-shield-lock"></i> Staff
-                            </a>
-                        </li>
                         <li class="nav-item ms-lg-2">
                             <a class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}"
                                 href="{% url 'login' %}">
@@ -220,9 +194,8 @@
                 </div>
                 <div class="d-flex gap-3">
                     <a href="{% url 'catalog' %}">Catalog</a>
-                    <a href="{% url 'staff_dashboard' %}">Staff Hub</a>
                     <a href="{% url 'login' %}">Student Login</a>
-                    <a href="/admin/" target="_blank">Admin</a>
+                    <a href="/admin/">Django Admin</a>
                 </div>
             </div>
         </div>

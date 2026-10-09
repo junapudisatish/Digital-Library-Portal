@@ -206,7 +206,7 @@ class LibraryWorkflowAndPermissionsTests(TestCase):
         approve_url = reverse('approve_request', args=[record.id])
         response = self.client.post(approve_url)
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('staff_dashboard'))
+        self.assertEqual(response.url, reverse('admin:circulation_circulationrecord_changelist'))
 
         # Check record updated
         record.refresh_from_db()
@@ -382,13 +382,13 @@ class LibraryWorkflowAndPermissionsTests(TestCase):
         self.assertEqual(invalid_response.status_code, 200)
         self.assertContains(invalid_response, "Invalid username or password")
 
-        # Valid login accepted and redirects to staff dashboard
+        # Valid login accepted and redirects to admin interface
         valid_response = self.client.post(reverse('login'), {
             'username': 'admin',
             'password': initial_test_pass
         })
         self.assertEqual(valid_response.status_code, 302)
-        self.assertEqual(valid_response.url, reverse('staff_dashboard'))
+        self.assertEqual(valid_response.url, '/admin/')
 
     def test_password_change_workflow(self):
         initial_test_pass = 'InitialAdminTestPass#2026'
@@ -424,31 +424,167 @@ class LibraryWorkflowAndPermissionsTests(TestCase):
         self.assertEqual(res.url, reverse('password_reset_done'))
         self.assertEqual(len(mail.outbox), 1)
 
-    # 7. Member Terminology (Phase 4)
-    def test_member_terminology_in_staff_views(self):
+    # 7. Member Terminology & Admin Access Control
+    def test_member_terminology_in_admin_views(self):
         self.client.force_login(self.staff_librarian)
-        today = timezone.now().date()
-        CirculationRecord.objects.create(
-            book=self.book,
-            member=self.member,
-            issue_date=today - timedelta(days=20),
-            due_date=today - timedelta(days=5),
-            status='APPROVED',
-            returned=False
-        )
-
-        staff_res = self.client.get(reverse('staff_dashboard'))
-        self.assertEqual(staff_res.status_code, 200)
-        self.assertContains(staff_res, "New Member")
-        self.assertContains(staff_res, "Registered Members Directory")
-        self.assertContains(staff_res, "Book &amp; Member")
-        self.assertNotContains(staff_res, "New Patron")
-        self.assertNotContains(staff_res, "Registered Patrons")
-        self.assertNotContains(staff_res, "Book &amp; Patron")
-
         members_res = self.client.get(reverse('member_list'))
         self.assertEqual(members_res.status_code, 200)
         self.assertContains(members_res, "Members Directory")
         self.assertContains(members_res, "Register New Member")
         self.assertNotContains(members_res, "Patrons Directory")
         self.assertNotContains(members_res, "Register New Patron")
+
+    # 8. Django Admin URL & Access Tests
+    def test_admin_portal_available_at_admin_route(self):
+        """Visiting /admin/ opens Django's built-in admin login interface for unauthenticated users."""
+        response = self.client.get('/admin/')
+        # Django admin redirects unauthenticated users to /admin/login/?next=/admin/
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/admin/login/', response.url)
+
+        login_res = self.client.get('/admin/login/')
+        self.assertEqual(login_res.status_code, 200)
+        self.assertContains(login_res, "Digital Library Administration")
+        self.assertContains(login_res, "login-form")
+
+    def test_admin_login_and_access_admin_interface(self):
+        """Superuser admin can log in and view Django Admin with customized branding."""
+        admin_pass = 'SecureAdminAccess#2026'
+        call_command('setup_admin', username='admin', password=admin_pass)
+        self.client.login(username='admin', password=admin_pass)
+
+        response = self.client.get('/admin/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Digital Library Administration")
+        self.assertContains(response, reverse('admin:password_change'))
+
+    def test_regular_student_cannot_access_django_admin(self):
+        """Regular library students cannot access /admin/ or admin privileged views."""
+        self.client.force_login(self.student_user)
+
+        # GET /admin/ redirects non-staff users to admin login
+        admin_res = self.client.get('/admin/')
+        self.assertEqual(admin_res.status_code, 302)
+        self.assertIn('/admin/login/', admin_res.url)
+
+        # Regular user attempting admin book addition is blocked
+        add_book_res = self.client.get('/admin/circulation/book/add/')
+        self.assertEqual(add_book_res.status_code, 302)
+
+        # Regular user cannot access members directory
+        members_res = self.client.get(reverse('member_list'))
+        self.assertEqual(members_res.status_code, 302)
+        self.assertIn(reverse('login'), members_res.url)
+
+    def test_staff_dashboard_is_removed(self):
+        """The staff dashboard route /staff/ has been completely removed."""
+        res = self.client.get('/staff/')
+        self.assertEqual(res.status_code, 404)
+
+    # 9. Built-in Admin Password Change Workflow
+    def test_admin_built_in_password_change_flow(self):
+        """Administrator changes password via Django's built-in /admin/password_change/ interface."""
+        initial_pass = 'AdminOriginalPass#2026'
+        new_pass = 'AdminBrandNewPass#2026'
+        call_command('setup_admin', username='admin', password=initial_pass)
+        self.client.login(username='admin', password=initial_pass)
+
+        # 1. Access password change page in admin
+        get_res = self.client.get('/admin/password_change/')
+        self.assertEqual(get_res.status_code, 200)
+        self.assertContains(get_res, "old_password")
+        self.assertContains(get_res, "new_password1")
+
+        # 2. Reject wrong current password
+        wrong_old_res = self.client.post('/admin/password_change/', {
+            'old_password': 'IncorrectOldPassword',
+            'new_password1': new_pass,
+            'new_password2': new_pass,
+        })
+        self.assertEqual(wrong_old_res.status_code, 200)
+        self.assertContains(wrong_old_res, "Your old password was entered incorrectly.")
+
+        # 3. Successful password change
+        post_res = self.client.post('/admin/password_change/', {
+            'old_password': initial_pass,
+            'new_password1': new_pass,
+            'new_password2': new_pass,
+        })
+        self.assertEqual(post_res.status_code, 302)
+        self.assertEqual(post_res.url, reverse('admin:password_change_done'))
+
+        # 4. Confirmation page loads and confirms session
+        done_res = self.client.get(reverse('admin:password_change_done'))
+        self.assertEqual(done_res.status_code, 200)
+        self.assertContains(done_res, "Password change successful")
+
+        # 5. Verify new password authentication works and old password fails
+        self.client.logout()
+        self.assertFalse(self.client.login(username='admin', password=initial_pass))
+        self.assertTrue(self.client.login(username='admin', password=new_pass))
+
+    # 10. setup_admin Credentials Safety
+    def test_setup_admin_preserves_existing_password(self):
+        """setup_admin does not overwrite administrator credentials if user already exists."""
+        first_pass = 'AdminFirstPassword#2026'
+        second_pass = 'AdminSecondPassword#2026'
+
+        # First run creates user
+        call_command('setup_admin', username='admin', password=first_pass)
+        self.assertTrue(self.client.login(username='admin', password=first_pass))
+        self.client.logout()
+
+        # Second run without --reset-password MUST preserve existing password
+        call_command('setup_admin', username='admin', password=second_pass)
+        self.assertTrue(self.client.login(username='admin', password=first_pass))
+        self.client.logout()
+        self.assertFalse(self.client.login(username='admin', password=second_pass))
+
+        # Explicit reset with --reset-password updates password
+        call_command('setup_admin', username='admin', password=second_pass, reset_password=True)
+        self.assertTrue(self.client.login(username='admin', password=second_pass))
+
+    # 11. Django Admin Bulk Actions for Circulation
+    def test_circulation_admin_actions(self):
+        """Admin actions approve, reject, and return records in Django Admin."""
+        from circulation.admin import CirculationRecordAdmin
+        from django.contrib.admin.sites import AdminSite
+
+        admin_user = User.objects.create_superuser(username='super_mgr', email='mgr@library.demo', password='password123')
+        site = AdminSite()
+        model_admin = CirculationRecordAdmin(CirculationRecord, site)
+
+        # Pending request
+        record_pending = CirculationRecord.objects.create(
+            book=self.book,
+            member=self.member,
+            status='PENDING'
+        )
+        self.assertEqual(self.book.available_copies, 2)
+
+        # Test approve action
+        class DummyMessages:
+            def add(self, level, message, extra_tags=''):
+                pass
+
+        class MockRequest:
+            user = admin_user
+            def __init__(self):
+                self._messages = DummyMessages()
+            def message_user(self, *args, **kwargs):
+                pass
+
+        req = MockRequest()
+        model_admin.approve_requests(req, CirculationRecord.objects.filter(id=record_pending.id))
+        record_pending.refresh_from_db()
+        self.assertEqual(record_pending.status, 'APPROVED')
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.available_copies, 1)
+
+        # Test return action
+        model_admin.process_returns(req, CirculationRecord.objects.filter(id=record_pending.id))
+        record_pending.refresh_from_db()
+        self.assertTrue(record_pending.returned)
+        self.assertEqual(record_pending.status, 'RETURNED')
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.available_copies, 2)
