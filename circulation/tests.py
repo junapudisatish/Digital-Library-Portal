@@ -367,7 +367,8 @@ class LibraryWorkflowAndPermissionsTests(TestCase):
         self.assertContains(response, reverse('password_reset'))
 
     def test_admin_setup_command_and_login_validation(self):
-        call_command('setup_admin', username='admin', password='admini@123', email='admin@library.demo')
+        initial_test_pass = 'InitialAdminTestPass#2026'
+        call_command('setup_admin', username='admin', password=initial_test_pass, email='admin@library.demo')
         admin_user = User.objects.get(username='admin')
         self.assertTrue(admin_user.is_superuser)
         self.assertTrue(admin_user.is_staff)
@@ -384,21 +385,22 @@ class LibraryWorkflowAndPermissionsTests(TestCase):
         # Valid login accepted and redirects to staff dashboard
         valid_response = self.client.post(reverse('login'), {
             'username': 'admin',
-            'password': 'admini@123'
+            'password': initial_test_pass
         })
         self.assertEqual(valid_response.status_code, 302)
         self.assertEqual(valid_response.url, reverse('staff_dashboard'))
 
     def test_password_change_workflow(self):
-        call_command('setup_admin', username='admin', password='admini@123')
-        self.client.login(username='admin', password='admini@123')
+        initial_test_pass = 'InitialAdminTestPass#2026'
+        call_command('setup_admin', username='admin', password=initial_test_pass)
+        self.client.login(username='admin', password=initial_test_pass)
 
         get_res = self.client.get(reverse('password_change'))
         self.assertEqual(get_res.status_code, 200)
         self.assertContains(get_res, "Current Password")
 
         post_res = self.client.post(reverse('password_change'), {
-            'old_password': 'admini@123',
+            'old_password': initial_test_pass,
             'new_password1': 'NewAdminPass@2026!',
             'new_password2': 'NewAdminPass@2026!'
         })
@@ -406,11 +408,11 @@ class LibraryWorkflowAndPermissionsTests(TestCase):
         self.assertEqual(post_res.url, reverse('password_change_done'))
 
         self.client.logout()
-        self.assertFalse(self.client.login(username='admin', password='admini@123'))
+        self.assertFalse(self.client.login(username='admin', password=initial_test_pass))
         self.assertTrue(self.client.login(username='admin', password='NewAdminPass@2026!'))
 
     def test_password_reset_flow(self):
-        call_command('setup_admin', username='admin', password='admini@123', email='admin@library.demo')
+        call_command('setup_admin', username='admin', password='TemporaryResetPass#2026', email='admin@library.demo')
 
         res = self.client.get(reverse('password_reset'))
         self.assertEqual(res.status_code, 200)
