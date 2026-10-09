@@ -6,18 +6,31 @@ Configured for local development and Render deployment.
 import os
 from pathlib import Path
 
+import secrets
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/stable/howto/deployment/checklist/
+# Load local .env if present (never committed to git)
+_env_file = BASE_DIR / '.env'
+if _env_file.exists():
+    try:
+        with open(_env_file, 'r', encoding='utf-8') as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if _line and not _line.startswith('#') and '=' in _line:
+                    _k, _v = _line.split('=', 1)
+                    os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
+    except Exception:
+        pass
 
-# SECRET_KEY: Loaded from environment in production, safe fallback in local dev
+# SECRET_KEY: Strictly loaded from environment variable in production
 SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     if os.environ.get("RENDER") == "True" or os.environ.get("DEBUG", "").lower() == "false":
         raise ValueError("SECRET_KEY environment variable must be set in production.")
-    SECRET_KEY = "django-insecure-local-dev-fallback-key-library-portal-demo"
+    # In local development without SECRET_KEY in environment or .env, generate an ephemeral session key
+    SECRET_KEY = secrets.token_urlsafe(50)
 
 # DEBUG is True locally, False when deployed or when explicitly set
 if "DEBUG" in os.environ:

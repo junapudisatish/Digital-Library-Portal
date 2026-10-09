@@ -65,16 +65,22 @@ A comprehensive, production-ready full-stack **Digital Library & E-Book Circulat
 ## 2. Administrator & Member Authentication Setup
 
 ### Secure Superuser / Admin Setup
-Configure or update the superuser account securely using the custom Django management command:
-```bash
-python manage.py setup_admin --username=admin --password=admini@123 --email=admin@library.demo
-```
-This command is idempotent: if `admin` exists, its password and permissions are updated safely without creating duplicate records or logging passwords.
+Configure or update the administrator account using the custom Django management command. To protect credentials, passwords should be set via environment variables or entered securely via masked prompt:
 
-| Role | Username | Initial Demo Credential | Notes |
-| :--- | :--- | :--- | :--- |
-| **Librarian / Superuser** | `admin` | `admini@123` | Full access to Staff Hub (`/staff/`), Password Change (`/password-change/`), and Django Admin (`/admin/`). Recommend changing password after first login. |
-| **Student Member** | `student` | `student123` | Pre-seeded demo account linked to Alex Rivera (`MEM-1001`). Access to My Library (`/student/dashboard/`). |
+```bash
+# Option A: Interactive masked prompt (recommended for local development)
+python manage.py setup_admin --username=admin
+
+# Option B: Via environment variable (recommended for automated deployments & Render)
+export DJANGO_SUPERUSER_PASSWORD="your-secure-password"
+python manage.py setup_admin --username=admin
+```
+This command is safe and idempotent: if the administrator already exists, its permissions are safely verified without creating duplicate accounts or logging credentials.
+
+| Role | Provisioning | Notes |
+| :--- | :--- | :--- |
+| **Librarian / Superuser** | Configured via `setup_admin` or environment variables | Access to Staff Hub (`/staff/`), Password Change (`/password-change/`), and Django Admin (`/admin/`). |
+| **Student Member** | Self-registration (`/register/`) or administrative creation | Access to personal "My Library" hub (`/student/dashboard/`). |
 
 ---
 
@@ -127,7 +133,8 @@ python -c "import django, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'l
 
 ### 6. Set up admin account
 ```bash
-python manage.py setup_admin --username=admin --password=admini@123
+python manage.py setup_admin --username=admin
+# Enter your secure administrator password when prompted
 ```
 
 ### 7. Run automated test suite

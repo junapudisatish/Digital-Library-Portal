@@ -23,14 +23,12 @@ def create_admin():
         else:
             print(f"Notice: Superuser '{username}' does not exist and DJANGO_SUPERUSER_PASSWORD is not set in environment.")
     else:
-        # Safely verify and update permissions on existing superuser without duplicates
+        # Safely verify permissions on existing superuser without resetting their password
         admin_user.is_staff = True
         admin_user.is_superuser = True
         admin_user.is_active = True
-        if password:
-            admin_user.set_password(password)
         admin_user.save()
-        print(f"Verified superuser '{username}' with staff and superuser permissions.")
+        print(f"Verified superuser '{username}' exists with active staff and superuser permissions (password preserved).")
 
     # Automatically populate sample books and circulation records if database is empty
     if Book.objects.count() == 0:

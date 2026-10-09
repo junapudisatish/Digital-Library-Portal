@@ -1,3 +1,4 @@
+import os
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
@@ -160,7 +161,11 @@ def populate_sample_data():
         }
     )
     if user_created:
-        student_user.set_password("student123")
+        student_pwd = os.environ.get("DEMO_STUDENT_PASSWORD")
+        if student_pwd:
+            student_user.set_password(student_pwd)
+        else:
+            student_user.set_unusable_password()
         student_user.save()
 
     # 4. Members

@@ -1,31 +1,37 @@
-# Virtual Environment
-venv/
-env/
-ENV/
-.venv/
+# Environment and Secrets
+.env
+.env.*
+!.env.example
 
-# Python cache
-__pycache__/
-*.py[cod]
-*$py.class
+# SQLite Database
+db.sqlite3
+*.sqlite3
 *.sqlite3-journal
 *.sqlite3.bak
 *.bak
 
-# Django staticfiles collected locally
+# Python Bytecode and Caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Static Files & Uploads
 staticfiles/
+uploads/
 media/
 
-# Environment and secrets
-.env
-.env.local
-
-# IDEs
+# IDE Configurations
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# OS
+# Operating System Files
 .DS_Store
 Thumbs.db

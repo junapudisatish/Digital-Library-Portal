@@ -12,14 +12,14 @@ class Command(BaseCommand):
         parser.add_argument(
             '--username',
             type=str,
-            default='admin',
-            help="Superuser username (default: 'admin')"
+            default=os.environ.get('DJANGO_SUPERUSER_USERNAME', 'admin'),
+            help="Superuser username (default: env DJANGO_SUPERUSER_USERNAME or 'admin')"
         )
         parser.add_argument(
             '--email',
             type=str,
-            default='admin@library.demo',
-            help="Superuser email (default: 'admin@library.demo')"
+            default=os.environ.get('DJANGO_SUPERUSER_EMAIL', 'admin@example.com'),
+            help="Superuser email (default: env DJANGO_SUPERUSER_EMAIL or 'admin@example.com')"
         )
         parser.add_argument(
             '--password',
