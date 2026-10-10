@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: digital-library-demo
+    name: digital-library-portal
     runtime: python
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate"
     startCommand: "gunicorn library_portal.wsgi:application"
@@ -13,3 +13,7 @@ services:
         value: "False"
       - key: WEB_CONCURRENCY
         value: "2"
+      - key: DAILY_FINE_RATE
+        value: "5.00"
+      - key: EMAIL_BACKEND
+        value: "django.core.mail.backends.console.EmailBackend"

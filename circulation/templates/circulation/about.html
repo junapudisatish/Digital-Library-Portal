@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}About Us | LIBRA Digital Library{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Hero Section -->
+    <div class="text-center max-w-75 mx-auto mb-5">
+        <span class="badge bg-gold-subtle text-gold-dark border border-gold-subtle px-3 py-2 rounded-pill fw-semibold text-uppercase mb-3" style="letter-spacing: 0.08em;">
+            <i class="bi bi-mortarboard-fill me-1"></i> B.Tech Capstone Project
+        </span>
+        <h1 class="display-5 fw-extrabold text-navy mb-3">About LIBRA Digital Library Portal</h1>
+        <p class="lead text-muted">
+            An enterprise-grade academic e-book circulation and digital catalog management platform designed for modern collegiate libraries.
+        </p>
+    </div>
+
+    <!-- Core Mission & Architectural Highlights -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center">
+                <div class="rounded-circle bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-shield-check fs-3"></i>
+                </div>
+                <h5 class="fw-bold text-navy">Atomicity &amp; Integrity</h5>
+                <p class="text-muted small mb-0">
+                    Built with Django's atomic transactions (<code>select_for_update</code>) to prevent race conditions in copy reservations and returns.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center">
+                <div class="rounded-circle bg-warning-subtle text-warning d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-calculator fs-3"></i>
+                </div>
+                <h5 class="fw-bold text-navy">Configurable Fines</h5>
+                <p class="text-muted small mb-0">
+                    Transparent 14-day borrowing cycles with server-evaluated fine assessments (default ₹5.00/day) backed by an interactive real-time calculator.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center">
+                <div class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-pie-chart fs-3"></i>
+                </div>
+                <h5 class="fw-bold text-navy">Staff &amp; Student Portals</h5>
+                <p class="text-muted small mb-0">
+                    Role-segregated experiences: students track personal loans and requests; librarians approve checkouts with live Chart.js KPI analytics.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Architecture & Tech Stack Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
+        <div class="card-header bg-navy text-white p-4">
+            <h4 class="fw-bold mb-0"><i class="bi bi-cpu-fill text-gold me-2"></i> Technical Architecture &amp; Specifications</h4>
+        </div>
+        <div class="card-body p-4 p-md-5">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-uppercase text-muted small mb-3">Backend &amp; Database</h6>
+                    <ul class="list-unstyled d-flex flex-column gap-2 mb-0">
+                        <li class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span><strong>Python 3.11+ / Django 5.x</strong> robust MTV architecture</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span><strong>SQLite (db.sqlite3)</strong> lightweight embedded relational persistence</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span><strong>Django Authentication</strong> SHA-256 PBKDF2 password hashing &amp; token resets</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span><strong>Gunicorn WSGI</strong> production process manager</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-uppercase text-muted small mb-3">Frontend &amp; Deployment</h6>
+                    <ul class="list-unstyled d-flex flex-column gap-2 mb-0">
+                        <li class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span><strong>Bootstrap 5.3 + Custom CSS</strong> responsive editorial library aesthetic</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span><strong>Vanilla JavaScript (ES6+)</strong> client-side instant search &amp; fine calculators</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span><strong>Chart.js</strong> librarian inventory &amp; circulation analytics</span>
+                        </li>
+                        <li class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span><strong>WhiteNoise 6.8+ &amp; Render Cloud</strong> static compression &amp; HTTPS deployment</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions CTA -->
+    <div class="text-center">
+        <a href="{% url 'catalog' %}" class="btn btn-navy px-4 py-2 me-2">Explore Catalog</a>
+        <a href="{% url 'policies' %}" class="btn btn-outline-secondary px-4 py-2">Circulation Policies</a>
+    </div>
+</div>
+{% endblock %}

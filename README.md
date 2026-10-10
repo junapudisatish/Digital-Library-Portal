@@ -1,148 +1,174 @@
 # Digital Library & E-Book Circulation Portal
 
-A comprehensive, production-ready full-stack **Digital Library & E-Book Circulation Portal** built with **Django**, **Bootstrap 5**, **JavaScript (ES6+)**, and **SQLite**. Featuring an elegant **Navy Blue, Crisp White, and Subtle Metallic Gold** design system, a two-stage **Student Borrow Request & Librarian Approval Lifecycle**, real-time **14-Day Loan Engine**, automated **₹5/day Overdue Fine Calculation**, full **Django Admin & Member Authentication**, and public deployment on **Render** using **WhiteNoise** and **Gunicorn**.
+A comprehensive, production-grade full-stack **Digital Library & E-Book Circulation Portal** built with **Django 5.x**, **Bootstrap 5.3**, **JavaScript (ES6+)**, **Chart.js**, and **SQLite**. Designed and upgraded as an academic B.Tech Capstone Project.
+
+Live Production URL: **[https://digital-library-portal.onrender.com/](https://digital-library-portal.onrender.com/)**
 
 ---
 
 ## 1. Key Features & Architectural Capabilities
 
-### 🎨 Premium Navy Blue & Gold Design System
-- **Curated Palette**: Deep Luxury Navy (`#0B192C`, `#102A45`), Crisp White (`#FFFFFF`), and Warm Metallic Gold accents (`#D4AF37`, `#C59B27`).
-- **Modern Typography**: Google Fonts (*Outfit* for bold headings and *Plus Jakarta Sans* for clean body text).
-- **Glassmorphic Navigation**: Sticky navy navbar with gold branding badge and role-based dropdown navigation.
-- **Micro-Animations & Visual Hierarchy**: Smooth card lifting (`translateY`), cover image zoom on hover, overdue pulse indicators, and CSS skeleton loaders.
-- **Full Responsiveness**: Seamless across mobile phones, tablets, and wide desktop displays.
+### 🎨 Editorial Library Theme & Design System
+- **Curated Color Tokens**: Deep Navy (`#071224`, `#0B192C`), Warm Ivory (`#FAFAF7`), and Subtle Gold accents (`#D4AF37`, `#C59B27`).
+- **Modern Typography**: Google Fonts (*Outfit* for editorial headings, *Plus Jakarta Sans* for UI body text).
+- **Responsive Navigation**: Sticky glassmorphic navbar with active link highlights, student "My Library" portal, librarian quick-actions, and mobile drawer.
+- **Offline Reliability**: Local vector SVG book-cover fallback (`/static/images/book-cover-fallback.svg`) for missing or broken image URLs.
 
-### 📚 Book Catalog, Instant Search, Filtering & Pagination
-- **Multi-Criteria Discovery**: Instant client-side ES6+ search alongside server-side keyword query across title, author, genre, and ISBN.
-- **Category & Stock Filters**: Filter by genre or availability (In Stock vs. Checked Out).
-- **Database-Optimized Sorting**: Sort by Title (A &rarr; Z), Title (Z &rarr; A), Author, Most Available Copies, or Newest Additions.
-- **Django Pagination**: 8 books per page with preserved query parameters across pagination links.
-- **Rich Book Detail Pages**: Book cover, author biography, ISBN, total/available copies, synopsis overview, student loan status alert, and complete checkout history.
+### 🏛️ Landing Page (`/`)
+- **Brand Identity**: LIBRA Digital Library Portal with editorial hero heading: *"Your Next Great Read Starts Here."*
+- **Live Database Metrics**: Real-time ORM counters for catalog titles, physical copies, available copies, registered members, and active loans.
+- **Instant Search Bar**: Hero search bar routing directly to filtered catalog queries.
+- **Showcases**: Featured volumes, recently added titles, popular genres, and a 3-step borrowing workflow explanation.
 
-### 🎓 Student Authentication & "My Library" Dashboard
-- **Secure Registration (`/register/`)**: Student signup provisioning a Django user account and linking to an automated student library card (`Member` record).
-- **Member & Staff Login (`/login/`)**: Standard secure Django authentication with password hashing and CSRF protection. Credentials are never exposed on login pages.
-- **Password Management**: Built-in Password Change (`/password-change/`) with session preservation and Password Reset (`/password-reset/`) flows.
-- **"My Library" Dashboard (`/student/dashboard/`)**:
-  - **4 Executive Metric Cards**: Pending Requests, Currently Borrowed, Due Soon, and Overdue.
-  - **6 Dedicated Sections**:
-    1. Pending Requests (with live approval status badges)
-    2. Active Loans (with 14-day due date countdowns)
-    3. Due Soon (within 3 days)
-    4. Overdue Loans (with live estimated overdue days and ₹5/day fines)
-    5. Returned Books / Historical Circulation
-    6. Rejected Requests (with librarian explanation note)
+### 📚 Catalog Discovery & Management (`/catalog/`)
+- **Instant Client-Side & Server-Side Search**: Title, author, ISBN, and genre keyword matching.
+- **Availability & Genre Filters**: Filter by genre or stock level (Available, Limited Copies, Unavailable).
+- **Inventory Badges**: Distinct visual status indicators (`Available`, `Limited Stock`, `Out of Stock`).
+- **Book Details (`/book/<id>/`)**: Bibliographic overview, author biography, ISBN, copy stock counters, student loan status alert, and issue request trigger.
+- **Author Directory (`/authors/`)**: Searchable directory of literary creators with biographical notes and book counts.
 
-### 🛡️ Administrator-Approved Book Borrowing Workflow
-1. **Student Request**: Authenticated student browses the catalog and clicks **Borrow Book**.
-2. **Server Validation**: The server validates book availability, prevents duplicate pending/active loans, and records a `PENDING` request. Available copies are **NOT** decremented at request submission.
-3. **Administrator Review**: Administrators review pending requests in the **Django Administration Portal** (`/admin/`).
-4. **Administrator Approval**:
-   - Atomic database transaction (`transaction.atomic`) rechecks availability.
-   - Decrements `available_copies` by exactly 1.
-   - Sets status to `APPROVED`, records issue date, and computes authoritative due date (`issue_date + 14 days`).
-   - Records the approving administrator.
-5. **Administrator Rejection**:
-   - Marks request `REJECTED` and records optional rejection reason for the student.
-   - Stock remains untouched.
+### 🔄 Book Circulation, 14-Day Lending & ₹5/day Overdue Fine Engine
+- **Atomic Book Issue (`/issue/`)**: Authenticated members request or librarians issue available copies. Transactional locking (`select_for_update`) prevents negative inventory and race conditions.
+- **Automated Due Date**: Automatically set to 14 days after the issue date.
+- **Book Return Desk (`/return/`)**:
+  - Student members can self-return their own active loans directly from their dashboard.
+  - Librarians can return any active circulation record.
+  - Returns increment available book inventory by exactly 1 in a database transaction.
+  - Overdue fines are authoritatively calculated on the Django server: `Overdue Days × DAILY_FINE_RATE` (default ₹5.00/day).
+  - Books returned on or before due date incur ₹0.00 fine.
+- **Interactive Due Date & Fine Calculator (`/calculator/` & `/due-calculator/`)**: Interactive tool to preview 14-day due dates and calculate overdue fines based on custom dates and rates.
 
-### 💰 Book Returns & Overdue Fine Engine
-- **Loan Period**: Standard 14 days.
-- **Fine Rate**: ₹5.00 per calendar day overdue (`DAILY_FINE_RATE = Decimal('5.00')`). Grace period: None.
-- **Fine Formula**: `Overdue Days × ₹5.00` (where `Overdue Days = max(0, return_date - due_date)`).
-- **Return Processing**: Authorized administrators process returns. Available copies increment by exactly 1, and the final fine amount is authoritatively recorded.
+### 📊 Role-Segregated Dashboards
 
-### 🛡️ Django Administration Interface (`/admin/`)
-- **Direct Django Admin Access**: Full administrative management available at `/admin/` for authorized superusers.
-- **Bulk Action Tools**: Approve pending requests, reject requests, and process book returns directly from the Circulation Records list in Django Admin.
-- **Catalog & Inventory Management**: Add new books, authors, manage categories, and update copy counts.
-- **Member & User Management**: Manage registered students, library members, and administrator accounts.
-- **Secure Password Management**: Administrators can change their password securely inside the admin interface via `/admin/password_change/` using Django's built-in password validation and hashing.
+#### 🎓 Student Member Dashboard (`/student/dashboard/`)
+- **Executive Metric Tiles**: Pending requests, active borrowed books, loans due soon, and overdue alerts.
+- **Tabbed Management**:
+  1. *Pending Requests* (with librarian approval status).
+  2. *Active Loans* (with due countdown and direct return buttons).
+  3. *Due Soon* (expiring within 3 days).
+  4. *Overdue Notice* (with accrued ₹5/day fine warnings).
+  5. *Borrowing History* (past returned books and assessed fines).
+  6. *Rejected Requests* (with librarian feedback).
+
+#### 🛡️ Librarian Analytics & Operations Dashboard (`/librarian/dashboard/`)
+- **8 Live KPI Tiles**: Catalog titles, physical copies, in-stock inventory, registered members, active loans, overdue loans, pending requests, and collected fines.
+- **Chart.js Visualizations**:
+  - Category / Genre distribution doughnut chart.
+  - Circulation lifecycle status breakdown bar chart.
+- **Operational Action Queues**:
+  - Pending borrowing requests review and approval table.
+  - Overdue borrowings attention table with fine calculator.
+  - Most borrowed books leaderboard.
+  - Recent circulation activity log.
 
 ---
 
-## 2. Administrator & Member Authentication Setup
+## 2. Security, Authentication & Password Reset
 
-### Secure Superuser / Admin Setup
-Configure or initialize the administrator account (`admin`) using the safe Django management command. To protect credentials, passwords should be set via environment variables or entered securely via masked prompt:
+### Authentication System
+- Built on Django's native authentication framework with PBKDF2 SHA-256 password hashing.
+- Member registration (`/register/`) with validation, unique emails, and automated `Member` profile linkage.
+- Session-preserving password change (`/password-change/`).
 
-```bash
-# Option A: Interactive masked prompt (recommended for local development)
-python manage.py setup_admin --username=admin
+### Password Reset Workflow
+- Cryptographic token generation via Django `PasswordResetForm`.
+- Validates that the submitted email belongs to an active, registered account.
+- Dispatches secure reset links to user email (`/password-reset/confirm/<uidb64>/<token>/`).
+- Detailed, structured logging records dispatch events and catches email delivery errors without exposing passwords.
 
-# Option B: Via environment variable (recommended for automated deployments & Render)
-export DJANGO_SUPERUSER_PASSWORD="your-strong-production-password"
-python manage.py setup_admin --username=admin
+### Email Configuration
+
+#### Development Mode (Console Backend)
+By default, the application uses Django's console email backend. Reset links are printed directly to the terminal/console stdout:
+```python
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 ```
-This command is safe, non-destructive, and idempotent: if the administrator already exists, its active permissions are verified while strictly preserving existing credentials.
 
-| Role | Access Route | Permissions |
-| :--- | :--- | :--- |
-| **Administrator (`admin`)** | Django Admin (`/admin/`) | Full management of books, circulation, members, and secure password change (`/admin/password_change/`). |
-| **Student Member** | Portal (`/login/`, `/student/dashboard/`) | Catalog discovery, loan requests, active borrowing tracking, and member password management. |
+#### Production Mode (SMTP Configuration)
+To send real emails via SMTP (e.g. Gmail or SendGrid), configure the following environment variables:
+```bash
+EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT="587"
+EMAIL_USE_TLS="True"
+EMAIL_HOST_USER="your-email@gmail.com"
+EMAIL_HOST_PASSWORD="your-app-password"  # Use Google App Password, not main password
+DEFAULT_FROM_EMAIL="LIBRA Digital Library <your-email@gmail.com>"
+```
+
+### Access Control & Demonstration Safety
+- Sensitive librarian dashboards and author/book creation routes require `is_staff` privileges.
+- Student members are strictly restricted to their own circulation records and profiles; unauthorized attempts to return other members' records are rejected.
+- **Safe Demo Seeding (`/seed-demo-data/`)**: Restricted to authenticated staff. Only synchronizes missing books and demo members; does not destructively delete existing student loans unless `--reset` is explicitly requested.
 
 ---
 
 ## 3. Technology Stack
 
-- **Backend**: Python 3.11+, Django 6.x / 5.x, Django ORM
-- **Database**: SQLite (`db.sqlite3`) using Django's built-in backend
-- **Frontend**: HTML5, Vanilla CSS3 (Custom Navy & Gold tokens), JavaScript (ES6+), Bootstrap 5, Bootstrap Icons
-- **Static Asset Pipeline**: WhiteNoise (`CompressedManifestStaticFilesStorage` in production, `StaticFilesStorage` in development)
-- **Production WSGI Server**: Gunicorn
-- **Deployment Platform**: Render (`render.yaml`)
+| Layer | Technologies |
+| :--- | :--- |
+| **Backend** | Python 3.11+, Django 5.x / 6.x, Django ORM |
+| **Database** | SQLite (`db.sqlite3`) - Mandatory per Capstone requirement |
+| **Frontend** | HTML5, CSS3 (Custom Navy & Gold tokens), Vanilla JS (ES6+), Bootstrap 5.3, Bootstrap Icons |
+| **Visualizations** | Chart.js 4.4+ (Librarian Operations Analytics) |
+| **Static Files** | WhiteNoise (`CompressedManifestStaticFilesStorage` in production) |
+| **WSGI Server** | Gunicorn |
+| **Deployment** | Render Cloud (`render.yaml`) |
 
-> [!NOTE]
-> **SQLite on Render Free Tier**: Render's default free web service filesystem is ephemeral. While local development uses persistent `db.sqlite3`, data written to SQLite on a free Render web service may reset upon service redeployments or container restarts unless a Render Persistent Disk is attached.
+> [!IMPORTANT]
+> **SQLite on Render Free Web Services**:
+> Render's free tier web service filesystem is ephemeral. While local development uses persistent local `db.sqlite3`, instances on Render's free tier may reset database state if the container restarts or is redeployed. For evaluation and viva demonstrations, run `python manage.py seed_library` or use the staff `/seed-demo-data/` portal to repopulate demonstration records instantaneously.
 
 ---
 
-## 4. Local Installation & Development Setup
+## 4. Local Setup & Development Commands
 
-### 1. Clone the repository and enter directory
+### 1. Clone & Enter Repository
 ```bash
 git clone https://github.com/junapudisatish/Digital-Library-Portal.git
 cd "Digital Library & E-Book Circulation Portal"
 ```
 
-### 2. Activate virtual environment
-**On Windows PowerShell:**
+### 2. Activate Virtual Environment
+**Windows PowerShell:**
 ```powershell
 .\venv\Scripts\Activate.ps1
 ```
-**On macOS / Linux:**
+**Linux / macOS:**
 ```bash
 source venv/bin/activate
 ```
 
-### 3. Install dependencies
+### 3. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Run migrations
+### 4. Apply Migrations
 ```bash
 python manage.py migrate
 ```
 
-### 5. Seed sample books, demo members, and circulation records
+### 5. Seed Library Catalog & Demonstration Records
 ```bash
-python -c "import django, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'library_portal.settings'); django.setup(); from circulation.seed_data import populate_sample_data; populate_sample_data()"
+python manage.py seed_library
 ```
+*(To perform a clean reset of sample data, run `python manage.py seed_library --reset`)*
 
-### 6. Set up admin account
+### 6. Create / Verify Administrator Account
 ```bash
 python manage.py setup_admin --username=admin
-# Enter your secure administrator password when prompted
+# Enter your secure password when prompted
 ```
 
-### 7. Run automated test suite
+### 7. Run Verification Checks & Test Suite
 ```bash
+python manage.py check
+python manage.py makemigrations --check --dry-run
 python manage.py test
 ```
 
-### 8. Start the local development server
+### 8. Start Local Development Server
 ```bash
 python manage.py runserver
 ```
@@ -150,14 +176,14 @@ Visit **`http://127.0.0.1:8000/`** in your browser.
 
 ---
 
-## 5. Deployment on Render
+## 5. Render Production Deployment
 
-This project includes a declarative `render.yaml` blueprint configured for Render:
+The project is preconfigured with a declarative `render.yaml` specification:
 
 ```yaml
 services:
   - type: web
-    name: digital-library-demo
+    name: digital-library-portal
     runtime: python
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate"
     startCommand: "gunicorn library_portal.wsgi:application"
@@ -170,19 +196,40 @@ services:
         value: "False"
       - key: WEB_CONCURRENCY
         value: "2"
+      - key: DAILY_FINE_RATE
+        value: "5.00"
+      - key: EMAIL_BACKEND
+        value: "django.core.mail.backends.console.EmailBackend"
 ```
 
-### Required Environment Variables on Render
-- `SECRET_KEY`: Auto-generated by Render or specified manually.
-- `DEBUG`: Set to `False`.
-- `PYTHON_VERSION`: `3.11.0` or later.
-- `RENDER`: Set to `True` (automatically set by Render).
+### Manual Environment Variables on Render
+If configuring the service manually in the Render dashboard:
+- `SECRET_KEY`: A cryptographically secure random string.
+- `DEBUG`: `False`
+- `ALLOWED_HOSTS`: `digital-library-portal.onrender.com,localhost,127.0.0.1`
+- `DAILY_FINE_RATE`: `5.00`
+- `EMAIL_BACKEND`: `django.core.mail.backends.console.EmailBackend` (or SMTP credentials).
+- `PYTHON_VERSION`: `3.11.0`
 
-### Push Changes to GitHub
+### Build & Start Commands
+- **Build Command**:
+  `pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate`
+- **Start Command**:
+  `gunicorn library_portal.wsgi:application`
+
+---
+
+## 6. Verification & Automated Test Coverage
+
+The platform includes **39 automated unit tests** verifying:
+- **Model Integrity**: Copy increment/decrement, zero copy issue prevention, 14-day default due date, and fine calculation.
+- **Workflow & Atomicity**: Issue transactions, return inventory updates, and prevention of duplicate submissions.
+- **Security & Authorization**: Student profile privacy, prevention of cross-member return submissions, and staff-only catalog/seed routes.
+- **Authentication**: Registration, login, logout, password change, and password reset token delivery.
+- **Institutional Pages**: Landing page, catalog search, librarian analytics, author directory, and error handlers.
+
+All tests execute cleanly:
 ```bash
-git status
-git add .
-git commit -m "Upgrade digital library portal"
-git push origin main
+Ran 39 tests in 92.8s
+OK
 ```
-Render automatically triggers the build command (installs dependencies, collects static assets via WhiteNoise, applies migrations) and starts the Gunicorn application server.

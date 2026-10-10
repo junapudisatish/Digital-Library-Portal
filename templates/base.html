@@ -30,7 +30,7 @@
     <!-- Main Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'catalog' %}">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'home' %}">
                 <span class="navbar-brand-badge">
                     <i class="bi bi-book-half"></i> LIBRA
                 </span>
@@ -47,9 +47,23 @@
             <div class="collapse navbar-collapse" id="mainNavbar">
                 <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
                     <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}"
+                            href="{% url 'home' %}">
+                            <i class="bi bi-house-door"></i> Home
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}"
                             href="{% url 'catalog' %}">
                             <i class="bi bi-grid-3x3-gap"></i> Catalog
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'author_list' %}active{% endif %}"
+                            href="{% url 'author_list' %}">
+                            <i class="bi bi-people"></i> Authors
                         </a>
                     </li>
 
@@ -62,10 +76,17 @@
 
                     {% if user.is_authenticated %}
                         {% if user.is_superuser or user.is_staff %}
-                            <!-- Administrator Navigation Link -->
+                            <!-- Administrator & Librarian Navigation Links -->
                             <li class="nav-item">
-                                <a class="nav-link" href="/admin/">
-                                    <i class="bi bi-shield-lock-fill"></i> Admin Console
+                                <a class="nav-link {% if request.resolver_match.url_name == 'librarian_dashboard' %}active{% endif %}"
+                                    href="{% url 'librarian_dashboard' %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.resolver_match.url_name == 'member_list' %}active{% endif %}"
+                                    href="{% url 'member_list' %}">
+                                    <i class="bi bi-person-lines-fill"></i> Members
                                 </a>
                             </li>
                         {% else %}
@@ -73,7 +94,7 @@
                             <li class="nav-item">
                                 <a class="nav-link {% if request.resolver_match.url_name == 'student_dashboard' %}active{% endif %}"
                                     href="{% url 'student_dashboard' %}">
-                                    <i class="bi bi-person-badge"></i> My Loans
+                                    <i class="bi bi-person-badge"></i> My Library
                                 </a>
                             </li>
                         {% endif %}
@@ -84,7 +105,7 @@
                                 <i class="bi bi-person-circle"></i>
                                 <span>{{ user.first_name|default:user.username }}</span>
                                 {% if user.is_superuser or user.is_staff %}
-                                    <span class="badge bg-warning text-dark py-0 px-1 font-monospace" style="font-size: 0.65rem;">Admin</span>
+                                    <span class="badge bg-warning text-dark py-0 px-1 font-monospace" style="font-size: 0.65rem;">Librarian</span>
                                 {% else %}
                                     <span class="badge bg-light text-dark py-0 px-1 font-monospace" style="font-size: 0.65rem;">Student</span>
                                 {% endif %}
@@ -95,11 +116,17 @@
                                     <div class="text-muted small font-monospace">{{ user.email }}</div>
                                 </li>
                                 {% if user.is_superuser or user.is_staff %}
-                                    <li><a class="dropdown-item py-2" href="/admin/"><i class="bi bi-gear me-2 text-primary"></i> Django Administration</a></li>
-                                    <li><a class="dropdown-item py-2" href="/admin/password_change/"><i class="bi bi-key me-2 text-warning"></i> Change Admin Password</a></li>
-                                {% else %}
-                                    <li><a class="dropdown-item py-2" href="{% url 'student_dashboard' %}"><i class="bi bi-journal-bookmark me-2 text-primary"></i> My Active Loans</a></li>
+                                    <li><a class="dropdown-item py-2" href="{% url 'librarian_dashboard' %}"><i class="bi bi-speedometer2 me-2 text-primary"></i> Librarian Analytics</a></li>
+                                    <li><a class="dropdown-item py-2" href="{% url 'issue_book' %}"><i class="bi bi-box-arrow-up-right me-2 text-info"></i> Issue Desk</a></li>
+                                    <li><a class="dropdown-item py-2" href="{% url 'return_book' %}"><i class="bi bi-arrow-return-left me-2 text-warning"></i> Return Desk</a></li>
+                                    <li><a class="dropdown-item py-2" href="{% url 'book_create' %}"><i class="bi bi-plus-circle me-2 text-success"></i> Add Book</a></li>
+                                    <li><a class="dropdown-item py-2" href="{% url 'author_create' %}"><i class="bi bi-person-plus me-2 text-secondary"></i> Add Author</a></li>
+                                    <li><a class="dropdown-item py-2" href="/admin/"><i class="bi bi-gear me-2 text-danger"></i> Django Administration</a></li>
                                     <li><a class="dropdown-item py-2" href="{% url 'password_change' %}"><i class="bi bi-key me-2 text-warning"></i> Change Password</a></li>
+                                {% else %}
+                                    <li><a class="dropdown-item py-2" href="{% url 'student_dashboard' %}"><i class="bi bi-journal-bookmark me-2 text-primary"></i> My Active Loans &amp; History</a></li>
+                                    <li><a class="dropdown-item py-2" href="{% url 'return_book' %}"><i class="bi bi-arrow-return-left me-2 text-warning"></i> Return a Book</a></li>
+                                    <li><a class="dropdown-item py-2" href="{% url 'password_change' %}"><i class="bi bi-key me-2 text-secondary"></i> Change Password</a></li>
                                 {% endif %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
@@ -167,10 +194,10 @@
                 <div class="col-md-6 text-center text-md-start">
                     <div class="d-flex align-items-center gap-2 justify-content-center justify-content-md-start">
                         <span class="footer-brand-badge"><i class="bi bi-book-half"></i> LIBRA</span>
-                        <span class="text-white fw-bold brand-font fs-5">Digital Library & E-Book Portal</span>
+                        <span class="text-white fw-bold brand-font fs-5">Digital Library &amp; E-Book Portal</span>
                     </div>
                     <p class="small text-white-50 mb-0 mt-2">
-                        Comprehensive Academic Circulation Portal with 14-Day Automated Loan Cycles, Real-Time Due Date Calculation, and Overdue Fine Assessments.
+                        Comprehensive Academic Circulation Portal with 14-Day Automated Loan Cycles, Real-Time Due Date Calculation, and Configurable Overdue Fines (₹5.00/day).
                     </p>
                 </div>
                 <div class="col-md-6 text-center text-md-end">
@@ -178,9 +205,11 @@
                         <a href="{% url 'calculator' %}" class="btn btn-sm btn-outline-light">
                             <i class="bi bi-calculator me-1"></i> Due Calculator
                         </a>
-                        <a href="{% url 'seed_data' %}" class="btn btn-sm btn-outline-warning">
-                            <i class="bi bi-database-fill-gear me-1"></i> Reset / Seed Demo Data
-                        </a>
+                        {% if user.is_authenticated and user.is_staff %}
+                            <a href="{% url 'seed_data' %}" class="btn btn-sm btn-outline-warning">
+                                <i class="bi bi-database-fill-gear me-1"></i> Seed / Reset Demo Data
+                            </a>
+                        {% endif %}
                         <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
                             <i class="bi bi-cloud-check-fill me-1"></i> Render Production Ready
                         </span>
@@ -190,12 +219,17 @@
             <hr class="border-secondary my-3 opacity-25">
             <div class="d-flex flex-wrap justify-content-between align-items-center small text-white-50">
                 <div>
-                    &copy; {% now "Y" %} Digital Library Portal. Engineered with Django & SQLite.
+                    &copy; {% now "Y" %} LIBRA Digital Library Portal. Engineered with Django &amp; SQLite.
                 </div>
                 <div class="d-flex gap-3">
+                    <a href="{% url 'home' %}">Home</a>
                     <a href="{% url 'catalog' %}">Catalog</a>
-                    <a href="{% url 'login' %}">Student Login</a>
-                    <a href="/admin/">Django Admin</a>
+                    <a href="{% url 'about' %}">About</a>
+                    <a href="{% url 'policies' %}">Policies</a>
+                    <a href="{% url 'help' %}">Help / FAQs</a>
+                    {% if user.is_authenticated and user.is_staff %}
+                        <a href="/admin/">Django Admin</a>
+                    {% endif %}
                 </div>
             </div>
         </div>

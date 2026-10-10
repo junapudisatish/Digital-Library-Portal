@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Internal Server Error (500) | LIBRA Digital Library{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <div class="max-w-75 mx-auto py-5">
+        <div class="display-1 fw-extrabold text-danger mb-2" style="font-size: 6rem; letter-spacing: -2px;">500</div>
+        <div class="rounded-pill bg-danger-subtle text-danger d-inline-block px-3 py-1 fw-bold small text-uppercase mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> System Exception
+        </div>
+        <h2 class="fw-bold text-navy mb-3">An Unexpected Error Occurred</h2>
+        <p class="text-muted lead mb-4" style="max-width: 580px; margin: 0 auto;">
+            Our library systems encountered an unexpected technical glitch. The incident has been recorded in our system logs and our technical staff is actively investigating.
+        </p>
+
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="{% url 'home' %}" class="btn btn-navy px-4 py-2">
+                <i class="bi bi-house-door me-1"></i> Return Home
+            </a>
+            <a href="{% url 'catalog' %}" class="btn btn-outline-secondary px-4 py-2">
+                <i class="bi bi-grid me-1"></i> Catalog Directory
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

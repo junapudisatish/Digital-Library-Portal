@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Authors Directory | LIBRA Digital Library{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb & Header -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none text-muted">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'catalog' %}" class="text-decoration-none text-muted">Catalog</a></li>
+                    <li class="breadcrumb-item active fw-bold text-dark" aria-current="page">Authors</li>
+                </ol>
+            </nav>
+            <h1 class="h2 fw-extrabold text-navy mb-0">
+                <i class="bi bi-people-fill me-2 text-gold"></i> Literary Authors Directory
+            </h1>
+            <p class="text-muted small mb-0">Browse distinguished authors represented across our e-book and physical catalog.</p>
+        </div>
+
+        {% if user.is_staff %}
+            <a href="{% url 'author_create' %}" class="btn btn-navy shadow-sm">
+                <i class="bi bi-person-plus-fill me-1"></i> Add New Author
+            </a>
+        {% endif %}
+    </div>
+
+    <!-- Search Toolbar -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3 p-md-4">
+            <form method="GET" action="{% url 'author_list' %}" class="row g-2 align-items-center">
+                <div class="col-md-9 col-lg-10">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" name="q" value="{{ query }}" class="form-control border-start-0 ps-0" placeholder="Search authors by name or biography keyword...">
+                    </div>
+                </div>
+                <div class="col-md-3 col-lg-2 d-grid">
+                    <button type="submit" class="btn btn-navy">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Authors Grid -->
+    {% if authors %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for author in authors %}
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 book-card transition-all">
+                        <div class="card-body p-4 d-flex flex-column">
+                            <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center shadow-sm"
+                                         style="width: 52px; height: 52px; font-size: 1.4rem; background: linear-gradient(135deg, #071224 0%, #16365c 100%); border: 2px solid var(--gold-400);">
+                                        {{ author.name|slice:":1" }}
+                                    </div>
+                                    <div>
+                                        <h5 class="fw-bold text-dark mb-0">{{ author.name }}</h5>
+                                        <span class="badge bg-light text-muted border font-monospace mt-1">
+                                            <i class="bi bi-book me-1"></i> {{ author.book_count }} Title{{ author.book_count|pluralize }}
+                                        </span>
+                                    </div>
+                                </div>
+                                {% if user.is_staff %}
+                                    <a href="{% url 'author_edit' author.id %}" class="btn btn-sm btn-outline-secondary" title="Edit Author">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+
+                            <p class="text-muted small flex-grow-1 mb-4" style="line-height: 1.6;">
+                                {% if author.biography %}
+                                    {{ author.biography|truncatechars:180 }}
+                                {% else %}
+                                    <em class="text-muted opacity-75">No biographical notes provided yet for this author.</em>
+                                {% endif %}
+                            </p>
+
+                            <div class="pt-3 border-top mt-auto d-flex justify-content-between align-items-center">
+                                <a href="{% url 'catalog' %}?q={{ author.name }}" class="btn btn-sm btn-outline-navy w-100">
+                                    <i class="bi bi-collection me-1"></i> View Books by Author
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
+            <div class="py-4">
+                <i class="bi bi-people display-4 text-muted opacity-50 mb-3 d-block"></i>
+                <h4 class="fw-bold text-navy">No Authors Found</h4>
+                <p class="text-muted mb-4">No authors matched your search criteria "{{ query }}".</p>
+                <a href="{% url 'author_list' %}" class="btn btn-outline-secondary">Reset Search</a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Circulation Policies &amp; Borrowing Rules | LIBRA Digital Library{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="max-w-75 mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <h1 class="display-6 fw-extrabold text-navy mb-2">
+                <i class="bi bi-file-earmark-ruled-fill text-gold me-2"></i> Circulation Policies &amp; Rules
+            </h1>
+            <p class="text-muted">Standard borrowing terms, overdue regulations, and member responsibilities.</p>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="card-body p-4 p-md-5">
+                <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                    <div class="rounded-3 bg-primary-subtle text-primary p-3">
+                        <i class="bi bi-clock-history fs-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-1">1. Standard Loan Duration (14 Days)</h4>
+                        <p class="text-muted small mb-0">Every approved book issue is granted a default 14-calendar-day borrowing window.</p>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                    <div class="rounded-3 bg-danger-subtle text-danger p-3">
+                        <i class="bi bi-currency-rupee fs-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-1">2. Overdue Fines Assessment (₹5.00 / day)</h4>
+                        <p class="text-muted small mb-0">
+                            Books returned past the scheduled due date incur an automatic overdue fine of <strong>₹5.00 per overdue calendar day</strong>.
+                            Formula: <code>max(0, return_date - due_date) &times; ₹5.00</code>. Books returned on or before the due date incur zero fine.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                    <div class="rounded-3 bg-warning-subtle text-warning p-3">
+                        <i class="bi bi-shield-lock-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-1">3. Borrowing Quotas &amp; Eligibility</h4>
+                        <p class="text-muted small mb-0">
+                            Registered student members may hold up to 3 concurrent active loans. A member with overdue books or unsettled fines may be restricted from requesting additional titles until outstanding records are cleared.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-3 bg-success-subtle text-success p-3">
+                        <i class="bi bi-arrow-repeat fs-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-1">4. Book Returns &amp; Inventory Replenishment</h4>
+                        <p class="text-muted small mb-0">
+                            Upon returning a volume either at the library desk or via student portal self-return, the book's physical copy stock is automatically incremented back to the active catalog in a single atomic transaction.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center pt-3">
+            <a href="{% url 'due_calculator' %}" class="btn btn-outline-navy me-2">
+                <i class="bi bi-calculator me-1"></i> Try Interactive Fine Calculator
+            </a>
+            <a href="{% url 'help' %}" class="btn btn-secondary">
+                <i class="bi bi-question-circle me-1"></i> Help &amp; FAQs
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

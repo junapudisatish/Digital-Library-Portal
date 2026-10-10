@@ -21,7 +21,7 @@
                             <p class="mb-0 text-white-50">Process returned copy, replenish stock, and evaluate overdue fine in real time.</p>
                         </div>
                         <span id="fineRateValue" data-rate="{{ daily_fine_rate }}" class="badge bg-light text-dark px-3 py-2 rounded-pill border">
-                            Fine Rate: ${{ daily_fine_rate }}/day
+                            Fine Rate: ₹{{ daily_fine_rate }}/day
                         </span>
                     </div>
                 </div>
@@ -60,7 +60,7 @@
                             {% if form.circulation_record.errors %}
                                 <div class="text-danger small mt-1">{{ form.circulation_record.errors.0 }}</div>
                             {% endif %}
-                            <div class="form-text">Lists all currently checked out copies across all registered students.</div>
+                            <div class="form-text">{% if user.is_staff %}Lists all currently checked out copies across all registered students.{% else %}Lists your currently checked out active borrowings.{% endif %}</div>
                         </div>
 
                         <!-- Return Date -->
@@ -97,14 +97,14 @@
                                     <div class="p-3 bg-white rounded-3 shadow-sm border">
                                         <div class="small text-muted text-uppercase fw-semibold mb-1">Total Overdue Fine Due</div>
                                         <div class="fs-4 fw-bold text-danger" id="calcFineAmount">
-                                            $0.00
+                                            ₹0.00
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="small text-muted mt-3 text-center">
-                                Calculation Formula: <code>Overdue Days &times; ${{ daily_fine_rate }}/day</code>
+                                calculation Formula: <code>Overdue Days &times; ₹{{ daily_fine_rate }}/day</code>
                             </div>
                         </div>
 

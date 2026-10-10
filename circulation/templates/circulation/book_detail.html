@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ book.title }} | Book Details & Circulation{% endblock %}
 
@@ -24,7 +25,7 @@
                     <div class="text-secondary small">
                         Issued on <strong>{{ user_active_loan.issue_date|date:"F d, Y" }}</strong> &bull; Due Date: <strong>{{ user_active_loan.due_date|date:"F d, Y" }}</strong>
                         {% if user_active_loan.is_overdue %}
-                            <span class="badge bg-danger ms-2">OVERDUE BY {{ user_active_loan.days_overdue }} DAYS (${{ user_active_loan.current_estimated_fine }} fine)</span>
+                            <span class="badge bg-danger ms-2">OVERDUE BY {{ user_active_loan.days_overdue }} DAYS (₹{{ user_active_loan.current_estimated_fine }} fine)</span>
                         {% else %}
                             <span class="badge bg-success ms-2">On Track</span>
                         {% endif %}
@@ -44,11 +45,9 @@
         <div class="row g-0">
             <div class="col-lg-3 col-md-4 bg-dark d-flex align-items-center justify-content-center p-4" style="background: linear-gradient(135deg, #071224 0%, #0b192c 100%) !important;">
                 {% if book.cover_url %}
-                    <img src="{{ book.cover_url }}" alt="{{ book.title }}" class="img-fluid rounded-3 shadow-lg" style="max-height: 380px; width: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';">
+                    <img src="{{ book.cover_url }}" alt="{{ book.title }}" class="img-fluid rounded-3 shadow-lg" style="max-height: 380px; width: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='{% static 'images/book-cover-fallback.svg' %}';">
                 {% else %}
-                    <div class="text-white-50 text-center py-5">
-                        <i class="bi bi-journal-bookmark display-1 text-white-50"></i>
-                    </div>
+                    <img src="{% static 'images/book-cover-fallback.svg' %}" alt="{{ book.title }}" class="img-fluid rounded-3 shadow-lg" style="max-height: 380px; width: 100%; object-fit: cover;">
                 {% endif %}
             </div>
 

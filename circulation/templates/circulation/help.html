@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Help &amp; FAQ | LIBRA Digital Library{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="max-w-75 mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <h1 class="display-6 fw-extrabold text-navy mb-2">
+                <i class="bi bi-question-circle-fill text-gold me-2"></i> Frequently Asked Questions &amp; Help
+            </h1>
+            <p class="text-muted">Find quick answers on catalog searching, borrowing requests, password recovery, and fine calculations.</p>
+        </div>
+
+        <div class="accordion custom-accordion shadow-sm rounded-4 overflow-hidden" id="faqAccordion">
+            <!-- FAQ 1 -->
+            <div class="accordion-item border-0 border-bottom">
+                <h2 class="accordion-header" id="headingOne">
+                    <button class="accordion-button fw-bold text-navy" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                        <i class="bi bi-book me-2 text-gold"></i> How do I request or borrow a book?
+                    </button>
+                </h2>
+                <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-muted">
+                        1. Register for an account or log in as a student member.<br>
+                        2. Browse the <strong>Catalog</strong> or use the instant search bar to find the title you need.<br>
+                        3. Open the book details page and click <strong>"Borrow Book"</strong> (available copies must be greater than zero).<br>
+                        4. Your request will enter the <strong>Pending Requests</strong> queue for librarian verification and physical dispatch.
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 2 -->
+            <div class="accordion-item border-0 border-bottom">
+                <h2 class="accordion-header" id="headingTwo">
+                    <button class="accordion-button collapsed fw-bold text-navy" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                        <i class="bi bi-arrow-return-left me-2 text-gold"></i> How do I return a borrowed book?
+                    </button>
+                </h2>
+                <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-muted">
+                        Navigate to <strong>My Library</strong> (Student Dashboard) and switch to the <em>Active Loans</em> tab. Click the <strong>"Return"</strong> button next to any active book. Confirm the return date and submit. Your loan record will be marked returned, any overdue fine will be assessed, and available inventory is automatically replenished.
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 3 -->
+            <div class="accordion-item border-0 border-bottom">
+                <h2 class="accordion-header" id="headingThree">
+                    <button class="accordion-button collapsed fw-bold text-navy" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                        <i class="bi bi-currency-rupee me-2 text-gold"></i> How are overdue fines calculated?
+                    </button>
+                </h2>
+                <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-muted">
+                        All borrowings carry a standard 14-day loan period. If a book is returned after its due date, an overdue fee of <strong>₹5.00 per late calendar day</strong> is assessed. Fines are calculated on the Django server using the exact return timestamp: <code>(Return Date - Due Date) &times; ₹5.00</code>. You can also simulate calculations using our <a href="{% url 'due_calculator' %}">Due Date Calculator</a>.
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 4 -->
+            <div class="accordion-item border-0">
+                <h2 class="accordion-header" id="headingFour">
+                    <button class="accordion-button collapsed fw-bold text-navy" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                        <i class="bi bi-key-fill me-2 text-gold"></i> How does password reset work?
+                    </button>
+                </h2>
+                <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-muted">
+                        Click on <strong>"Forgot your password?"</strong> on the Login page. Enter the email address associated with your registered member account. A secure one-time cryptographic reset link will be dispatched. Follow the link to enter a new password. In local development or when SMTP credentials are not configured, reset links are printed directly to the server console log for security.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 bg-light rounded-4 p-4 mt-5 text-center">
+            <h5 class="fw-bold text-navy mb-1">Still need assistance?</h5>
+            <p class="text-muted small mb-3">Our library circulation team is available during campus operating hours.</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="mailto:support@digitallibrary.ac.in" class="btn btn-navy btn-sm">
+                    <i class="bi bi-envelope me-1"></i> Contact Circulation Desk
+                </a>
+                <a href="{% url 'catalog' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-grid me-1"></i> Browse Catalog
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

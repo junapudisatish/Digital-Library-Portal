@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from .models import Author, Book, Member, CirculationRecord, DAILY_FINE_RATE
 
 
-def populate_sample_data():
+def populate_sample_data(force_reset=False):
     User = get_user_model()
     today = timezone.now().date()
 
@@ -193,111 +193,113 @@ def populate_sample_data():
             member.save(update_fields=["user"])
         member_objs[m["member_id"]] = member
 
-    # 5. Circulation Records (Clean slate and populate rich records)
-    CirculationRecord.objects.all().delete()
+    # 5. Circulation Records (Safe seeding: only seed if table is empty, or explicit force_reset)
+    if force_reset:
+        CirculationRecord.objects.all().delete()
 
-    # Record 1: Alex Rivera has "1984" - Active, On-Time (issued 4 days ago, due in 10 days)
-    CirculationRecord.objects.create(
-        book=book_objs["1984"],
-        member=member_objs["MEM-1001"],
-        status='APPROVED',
-        issue_date=today - timedelta(days=4),
-        due_date=today + timedelta(days=10),
-        returned=False
-    )
+    if CirculationRecord.objects.count() == 0 or force_reset:
+        # Record 1: Alex Rivera has "1984" - Active, On-Time (issued 4 days ago, due in 10 days)
+        CirculationRecord.objects.create(
+            book=book_objs["1984"],
+            member=member_objs["MEM-1001"],
+            status='APPROVED',
+            issue_date=today - timedelta(days=4),
+            due_date=today + timedelta(days=10),
+            returned=False
+        )
 
-    # Record 2: Alex Rivera has "The Great Gatsby" - Active, OVERDUE! (issued 21 days ago, due 7 days ago -> 7 days overdue, 7 * ₹5 = ₹35 fine)
-    CirculationRecord.objects.create(
-        book=book_objs["The Great Gatsby"],
-        member=member_objs["MEM-1001"],
-        status='APPROVED',
-        issue_date=today - timedelta(days=21),
-        due_date=today - timedelta(days=7),
-        returned=False
-    )
+        # Record 2: Alex Rivera has "The Great Gatsby" - Active, OVERDUE! (issued 21 days ago, due 7 days ago -> 7 days overdue, 7 * ₹5 = ₹35 fine)
+        CirculationRecord.objects.create(
+            book=book_objs["The Great Gatsby"],
+            member=member_objs["MEM-1001"],
+            status='APPROVED',
+            issue_date=today - timedelta(days=21),
+            due_date=today - timedelta(days=7),
+            returned=False
+        )
 
-    # Record 3: Sophia Chen has "Pride and Prejudice" - Active, Due Soon (issued 12 days ago, due in 2 days)
-    CirculationRecord.objects.create(
-        book=book_objs["Pride and Prejudice"],
-        member=member_objs["MEM-1002"],
-        status='APPROVED',
-        issue_date=today - timedelta(days=12),
-        due_date=today + timedelta(days=2),
-        returned=False
-    )
+        # Record 3: Sophia Chen has "Pride and Prejudice" - Active, Due Soon (issued 12 days ago, due in 2 days)
+        CirculationRecord.objects.create(
+            book=book_objs["Pride and Prejudice"],
+            member=member_objs["MEM-1002"],
+            status='APPROVED',
+            issue_date=today - timedelta(days=12),
+            due_date=today + timedelta(days=2),
+            returned=False
+        )
 
-    # Record 4: Sophia Chen has "The Great Gatsby" - Active, OVERDUE! (issued 18 days ago, due 4 days ago)
-    CirculationRecord.objects.create(
-        book=book_objs["The Great Gatsby"],
-        member=member_objs["MEM-1002"],
-        status='APPROVED',
-        issue_date=today - timedelta(days=18),
-        due_date=today - timedelta(days=4),
-        returned=False
-    )
+        # Record 4: Sophia Chen has "The Great Gatsby" - Active, OVERDUE! (issued 18 days ago, due 4 days ago)
+        CirculationRecord.objects.create(
+            book=book_objs["The Great Gatsby"],
+            member=member_objs["MEM-1002"],
+            status='APPROVED',
+            issue_date=today - timedelta(days=18),
+            due_date=today - timedelta(days=4),
+            returned=False
+        )
 
-    # Record 5: Marcus Johnson has "Foundation" - Active, On-time (issued 2 days ago, due in 12 days)
-    CirculationRecord.objects.create(
-        book=book_objs["Foundation"],
-        member=member_objs["MEM-1003"],
-        status='APPROVED',
-        issue_date=today - timedelta(days=2),
-        due_date=today + timedelta(days=12),
-        returned=False
-    )
+        # Record 5: Marcus Johnson has "Foundation" - Active, On-time (issued 2 days ago, due in 12 days)
+        CirculationRecord.objects.create(
+            book=book_objs["Foundation"],
+            member=member_objs["MEM-1003"],
+            status='APPROVED',
+            issue_date=today - timedelta(days=2),
+            due_date=today + timedelta(days=12),
+            returned=False
+        )
 
-    # Record 6: Marcus Johnson returned "1984" past due (issued 30 days ago, due 16 days ago, returned 11 days ago -> 5 days overdue -> 5 * ₹5 = ₹25.00 fine paid)
-    CirculationRecord.objects.create(
-        book=book_objs["1984"],
-        member=member_objs["MEM-1003"],
-        status='RETURNED',
-        issue_date=today - timedelta(days=30),
-        due_date=today - timedelta(days=16),
-        return_date=today - timedelta(days=11),
-        fine_amount=Decimal('25.00'),
-        returned=True
-    )
+        # Record 6: Marcus Johnson returned "1984" past due (issued 30 days ago, due 16 days ago, returned 11 days ago -> 5 days overdue -> 5 * ₹5 = ₹25.00 fine paid)
+        CirculationRecord.objects.create(
+            book=book_objs["1984"],
+            member=member_objs["MEM-1003"],
+            status='RETURNED',
+            issue_date=today - timedelta(days=30),
+            due_date=today - timedelta(days=16),
+            return_date=today - timedelta(days=11),
+            fine_amount=Decimal('25.00'),
+            returned=True
+        )
 
-    # Record 7: Emily Watson returned "One Hundred Years of Solitude" on-time
-    CirculationRecord.objects.create(
-        book=book_objs["One Hundred Years of Solitude"],
-        member=member_objs["MEM-1004"],
-        status='RETURNED',
-        issue_date=today - timedelta(days=20),
-        due_date=today - timedelta(days=6),
-        return_date=today - timedelta(days=8),
-        fine_amount=Decimal('0.00'),
-        returned=True
-    )
+        # Record 7: Emily Watson returned "One Hundred Years of Solitude" on-time
+        CirculationRecord.objects.create(
+            book=book_objs["One Hundred Years of Solitude"],
+            member=member_objs["MEM-1004"],
+            status='RETURNED',
+            issue_date=today - timedelta(days=20),
+            due_date=today - timedelta(days=6),
+            return_date=today - timedelta(days=8),
+            fine_amount=Decimal('0.00'),
+            returned=True
+        )
 
-    # Record 8: Emily Watson has "Harry Potter and the Sorcerer's Stone" - Active
-    CirculationRecord.objects.create(
-        book=book_objs["Harry Potter and the Sorcerer's Stone"],
-        member=member_objs["MEM-1004"],
-        status='APPROVED',
-        issue_date=today - timedelta(days=5),
-        due_date=today + timedelta(days=9),
-        returned=False
-    )
+        # Record 8: Emily Watson has "Harry Potter and the Sorcerer's Stone" - Active
+        CirculationRecord.objects.create(
+            book=book_objs["Harry Potter and the Sorcerer's Stone"],
+            member=member_objs["MEM-1004"],
+            status='APPROVED',
+            issue_date=today - timedelta(days=5),
+            due_date=today + timedelta(days=9),
+            returned=False
+        )
 
-    # Record 9: Alex Rivera has a PENDING borrowing request for "Animal Farm"
-    CirculationRecord.objects.create(
-        book=book_objs["Animal Farm"],
-        member=member_objs["MEM-1001"],
-        status='PENDING',
-        request_date=timezone.now() - timedelta(hours=3),
-        returned=False
-    )
+        # Record 9: Alex Rivera has a PENDING borrowing request for "Animal Farm"
+        CirculationRecord.objects.create(
+            book=book_objs["Animal Farm"],
+            member=member_objs["MEM-1001"],
+            status='PENDING',
+            request_date=timezone.now() - timedelta(hours=3),
+            returned=False
+        )
 
-    # Record 10: Alex Rivera has a REJECTED borrowing request for "The Adventures of Sherlock Holmes"
-    CirculationRecord.objects.create(
-        book=book_objs["The Adventures of Sherlock Holmes"],
-        member=member_objs["MEM-1001"],
-        status='REJECTED',
-        request_date=timezone.now() - timedelta(days=2),
-        rejection_reason="Reserved for English Literature curriculum reference collection.",
-        returned=False
-    )
+        # Record 10: Alex Rivera has a REJECTED borrowing request for "The Adventures of Sherlock Holmes"
+        CirculationRecord.objects.create(
+            book=book_objs["The Adventures of Sherlock Holmes"],
+            member=member_objs["MEM-1001"],
+            status='REJECTED',
+            request_date=timezone.now() - timedelta(days=2),
+            rejection_reason="Reserved for English Literature curriculum reference collection.",
+            returned=False
+        )
 
     # Re-synchronize available_copies for books based on active circulation (status='APPROVED', returned=False)
     for book in Book.objects.all():

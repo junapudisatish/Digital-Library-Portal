@@ -176,19 +176,23 @@
                     <!-- Book Cover & Badges -->
                     <div class="book-cover-wrapper">
                         {% if book.cover_url %}
-                            <img src="{{ book.cover_url }}" alt="{{ book.title }} Cover" class="book-cover-img" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';">
+                            <img src="{{ book.cover_url }}" alt="{{ book.title }} Cover" class="book-cover-img" loading="lazy" onerror="this.onerror=null; this.src='{% static 'images/book-cover-fallback.svg' %}';">
                         {% else %}
-                            <div class="h-100 d-flex align-items-center justify-content-center bg-dark text-white">
-                                <i class="bi bi-book-half fs-1 text-white-50"></i>
-                            </div>
+                            <img src="{% static 'images/book-cover-fallback.svg' %}" alt="{{ book.title }} Cover" class="book-cover-img" loading="lazy">
                         {% endif %}
 
                         <!-- Availability Badge -->
                         <div class="book-overlay-badge">
                             {% if book.is_available %}
-                                <span class="availability-pill in-stock shadow-sm">
-                                    <i class="bi bi-check-circle-fill"></i> {{ book.available_copies }}/{{ book.total_copies }} Copies
-                                </span>
+                                {% if book.available_copies <= 2 %}
+                                    <span class="availability-pill limited shadow-sm">
+                                        <i class="bi bi-exclamation-triangle-fill"></i> Limited ({{ book.available_copies }} left)
+                                    </span>
+                                {% else %}
+                                    <span class="availability-pill in-stock shadow-sm">
+                                        <i class="bi bi-check-circle-fill"></i> Available ({{ book.available_copies }}/{{ book.total_copies }})
+                                    </span>
+                                {% endif %}
                             {% else %}
                                 <span class="availability-pill out-of-stock shadow-sm">
                                     <i class="bi bi-slash-circle-fill"></i> Out of Stock

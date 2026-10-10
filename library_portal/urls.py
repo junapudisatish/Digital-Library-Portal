@@ -8,3 +8,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('circulation.urls')),
 ]
+
+handler404 = 'circulation.views.handler404_view'
+handler500 = 'circulation.views.handler500_view'

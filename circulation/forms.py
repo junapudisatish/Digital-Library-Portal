@@ -77,6 +77,17 @@ class BookReturnForm(forms.Form):
         label="Return Date"
     )
 
+    def __init__(self, *args, member=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if member:
+            self.fields['circulation_record'].queryset = CirculationRecord.objects.filter(
+                member=member, returned=False
+            ).select_related('book', 'member')
+        else:
+            self.fields['circulation_record'].queryset = CirculationRecord.objects.filter(
+                returned=False
+            ).select_related('book', 'member')
+
     def clean(self):
         cleaned_data = super().clean()
         record = cleaned_data.get('circulation_record')
@@ -86,6 +97,17 @@ class BookReturnForm(forms.Form):
             if return_date < record.issue_date:
                 self.add_error('return_date', f"Return date cannot be earlier than the issue date ({record.issue_date}).")
         return cleaned_data
+
+
+class AuthorForm(forms.ModelForm):
+    """Form to add or edit book authors."""
+    class Meta:
+        model = Author
+        fields = ['name', 'biography']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Leo Tolstoy'}),
+            'biography': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Biographical background, notable contributions, bibliography...'}),
+        }
 
 
 class BookForm(forms.ModelForm):
@@ -169,9 +191,11 @@ class StudentRegistrationForm(forms.Form):
         return username
 
     def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if User.objects.filter(email__iexact=email).exists() or Member.objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError("An account with this email address already exists.")
+        email = self.cleaned_data.get('email', '').strip()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("An account with this email address already exists. Please sign in instead.")
+        if Member.objects.filter(email__iexact=email, user__isnull=False).exists():
+            raise forms.ValidationError("A library member with this email is already registered. Please sign in.")
         return email
 
     def clean(self):
@@ -193,20 +217,27 @@ class StudentRegistrationForm(forms.Form):
             first_name=data['first_name'],
             last_name=data['last_name']
         )
-        # Determine student member ID
-        member_id = data.get('student_id')
-        if not member_id:
-            member_id = f"STU-{uuid.uuid4().hex[:6].upper()}"
-
-        full_name = f"{data['first_name']} {data['last_name']}".strip() or data['username']
-        member = Member.objects.create(
-            user=user,
-            name=full_name,
-            member_id=member_id,
-            email=data['email'],
-            phone=data.get('phone', ''),
-            joined_date=timezone.now().date()
-        )
+        # Link to existing unlinked member profile if present, else create new
+        member = Member.objects.filter(email__iexact=data['email'], user__isnull=True).first()
+        if member:
+            member.user = user
+            member.name = f"{data['first_name']} {data['last_name']}".strip() or data['username']
+            if data.get('phone'):
+                member.phone = data['phone']
+            member.save()
+        else:
+            member_id = data.get('student_id')
+            if not member_id:
+                member_id = f"STU-{uuid.uuid4().hex[:6].upper()}"
+            full_name = f"{data['first_name']} {data['last_name']}".strip() or data['username']
+            member = Member.objects.create(
+                user=user,
+                name=full_name,
+                member_id=member_id,
+                email=data['email'],
+                phone=data.get('phone', ''),
+                joined_date=timezone.now().date()
+            )
         return user, member
 
 
@@ -235,7 +266,7 @@ class StyledPasswordChangeForm(PasswordChangeForm):
 
 
 class StyledPasswordResetForm(PasswordResetForm):
-    """Bootstrap 5 styled Password Reset Form."""
+    """Bootstrap 5 styled Password Reset Form with validation for registered accounts."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if 'email' in self.fields:
@@ -243,6 +274,23 @@ class StyledPasswordResetForm(PasswordResetForm):
                 'class': 'form-control form-control-lg',
                 'placeholder': 'Enter your registered email address'
             })
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email', '').strip()
+        UserModel = get_user_model()
+        active_users = UserModel._default_manager.filter(
+            email__iexact=email,
+            is_active=True
+        )
+        if not active_users.exists():
+            raise forms.ValidationError(
+                "No registered account found with this email address. Please verify your address or register."
+            )
+        if not any(u.has_usable_password() for u in active_users):
+            raise forms.ValidationError(
+                "This account does not have a usable password set. Please contact your library administrator."
+            )
+        return email
 
 
 class StyledSetPasswordForm(SetPasswordForm):

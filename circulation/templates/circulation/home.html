@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}LIBRA Digital Library | Your Next Great Read Starts Here{% endblock %}
+
+{% block content %}
+<!-- Premium Hero Section -->
+<section class="home-hero-section position-relative py-5 overflow-hidden" style="background: linear-gradient(135deg, #071224 0%, #0b192c 45%, #102a45 100%); border-bottom: 2px solid rgba(212, 175, 55, 0.25);">
+    <div class="hero-decorative-orb orb-1"></div>
+    <div class="hero-decorative-orb orb-2"></div>
+    <div class="container position-relative py-lg-4">
+        <div class="row align-items-center gy-5">
+            <div class="col-lg-7 text-center text-lg-start">
+                <span class="badge py-2 px-3 rounded-pill mb-3 shadow-sm" style="background: rgba(212, 175, 55, 0.15); color: var(--gold-400); border: 1px solid rgba(212, 175, 55, 0.35); font-weight: 600; font-size: 0.85rem; letter-spacing: 0.5px;">
+                    <i class="bi bi-stars me-1"></i> Academic Digital Library &amp; E-Book Portal
+                </span>
+                <h1 class="display-4 fw-extrabold text-white mb-3 tracking-tight" style="line-height: 1.15;">
+                    Your Next Great Read <br class="d-none d-sm-inline">
+                    <span class="brand-gold-text">Starts Here.</span>
+                </h1>
+                <p class="lead text-white-50 mb-4 pe-lg-4" style="font-size: 1.12rem; line-height: 1.6;">
+                    Discover thousands of curriculum and general literature titles. Enjoy streamlined 14-day loan terms, instant copy availability tracking, transparent overdue fine calculation, and comprehensive borrowing records.
+                </p>
+
+                <!-- Prominent Working Search Bar -->
+                <form action="{% url 'catalog' %}" method="GET" class="hero-search-form mb-4" id="homeSearchForm">
+                    <div class="input-group input-group-lg shadow-lg rounded-pill overflow-hidden bg-white p-1 border">
+                        <span class="input-group-text bg-transparent border-0 ps-3 text-muted">
+                            <i class="bi bi-search fs-5 text-primary"></i>
+                        </span>
+                        <input type="text" name="q" class="form-control border-0 shadow-none ps-2"
+                               placeholder="Search by book title, author, ISBN, or genre..."
+                               aria-label="Search Catalog" autocomplete="off" required>
+                        <button class="btn btn-navy rounded-pill px-4 fw-bold" type="submit">
+                            Search Books
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Quick Action Buttons -->
+                <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start align-items-center">
+                    <a href="{% url 'catalog' %}" class="btn btn-gold btn-lg rounded-pill px-4 shadow-sm fw-bold">
+                        <i class="bi bi-compass me-2"></i> Explore Books
+                    </a>
+                    {% if user.is_authenticated %}
+                        {% if user.is_staff or user.is_superuser %}
+                            <a href="{% url 'librarian_dashboard' %}" class="btn btn-outline-light btn-lg rounded-pill px-4">
+                                <i class="bi bi-speedometer2 me-2"></i> Librarian Dashboard
+                            </a>
+                        {% else %}
+                            <a href="{% url 'student_dashboard' %}" class="btn btn-outline-light btn-lg rounded-pill px-4">
+                                <i class="bi bi-person-badge me-2"></i> My Library
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'register' %}" class="btn btn-outline-light btn-lg rounded-pill px-4">
+                            <i class="bi bi-person-plus me-2"></i> Join as Member
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Hero Right: Live Library Overview Graphic -->
+            <div class="col-lg-5">
+                <div class="hero-card-preview p-4 rounded-4 shadow-2xl" style="background: rgba(11, 25, 44, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(212, 175, 55, 0.3);">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                        <div class="text-white fw-bold d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-check text-warning fs-5"></i>
+                            <span>Library Circulation Desk</span>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle font-monospace">Live Database</span>
+                    </div>
+
+                    <!-- 4 Live Database Statistics -->
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                <div class="text-warning small text-uppercase fw-semibold mb-1" style="font-size: 0.7rem;">Catalog Titles</div>
+                                <div class="fs-3 fw-bold text-white font-monospace">{{ total_titles }}</div>
+                                <div class="text-white-50 small" style="font-size: 0.75rem;">Unique books</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                <div class="text-info small text-uppercase fw-semibold mb-1" style="font-size: 0.7rem;">In Stock</div>
+                                <div class="fs-3 fw-bold text-white font-monospace">{{ available_inventory }} / {{ total_inventory }}</div>
+                                <div class="text-white-50 small" style="font-size: 0.75rem;">Available copies</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                <div class="text-success small text-uppercase fw-semibold mb-1" style="font-size: 0.7rem;">Active Loans</div>
+                                <div class="fs-3 fw-bold text-white font-monospace">{{ active_loans }}</div>
+                                <div class="text-white-50 small" style="font-size: 0.75rem;">Books circulated</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                                <div class="text-primary-emphasis small text-uppercase fw-semibold mb-1" style="font-size: 0.7rem;">Members</div>
+                                <div class="fs-3 fw-bold text-white font-monospace">{{ total_members }}</div>
+                                <div class="text-white-50 small" style="font-size: 0.75rem;">Students &amp; Faculty</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 p-3 rounded-3" style="background: rgba(212, 175, 55, 0.08); border: 1px dashed rgba(212, 175, 55, 0.35);">
+                        <div class="d-flex align-items-center gap-2 small text-white-50">
+                            <i class="bi bi-info-circle text-warning fs-5"></i>
+                            <div>
+                                <strong class="text-white">Lending Policy:</strong> Standard 14-day circulation period. ₹{{ daily_fine_rate }}/day overdue rate computed accurately on return.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How Borrowing Works Section -->
+<section class="py-5 bg-white">
+    <div class="container py-3">
+        <div class="text-center max-w-2xl mx-auto mb-5">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill fw-semibold text-uppercase" style="font-size: 0.75rem;">Simple &amp; Transparent</span>
+            <h2 class="h1 fw-bold text-dark mt-2 mb-3">How Library Circulation Works</h2>
+            <p class="text-muted">A modern borrowing cycle designed for students and faculty with complete accountability.</p>
+        </div>
+
+        <div class="row g-4 text-center">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 p-lg-5 position-relative hover-lift">
+                    <div class="step-badge rounded-circle text-white fw-bold d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 56px; height: 56px; background: linear-gradient(135deg, #071224, #183b5e); border: 2px solid var(--gold-400); font-size: 1.25rem;">
+                        1
+                    </div>
+                    <h4 class="fw-bold mb-2 text-dark">Discover &amp; Request</h4>
+                    <p class="text-muted small mb-0">
+                        Search the online catalog by title, author, genre, or ISBN. Check real-time physical copy availability and submit a 1-click borrow request.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 p-lg-5 position-relative hover-lift">
+                    <div class="step-badge rounded-circle text-white fw-bold d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 56px; height: 56px; background: linear-gradient(135deg, #071224, #183b5e); border: 2px solid var(--gold-400); font-size: 1.25rem;">
+                        2
+                    </div>
+                    <h4 class="fw-bold mb-2 text-dark">14-Day Lending Window</h4>
+                    <p class="text-muted small mb-0">
+                        Upon issue, the system automatically assigns an exact 14-day due date. Stock decreases atomically to guarantee inventory consistency.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 p-lg-5 position-relative hover-lift">
+                    <div class="step-badge rounded-circle text-white fw-bold d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 56px; height: 56px; background: linear-gradient(135deg, #071224, #183b5e); border: 2px solid var(--gold-400); font-size: 1.25rem;">
+                        3
+                    </div>
+                    <h4 class="fw-bold mb-2 text-dark">Track &amp; Return</h4>
+                    <p class="text-muted small mb-0">
+                        Receive due soon alerts on your personal dashboard. Return on time for ₹0 fine, or settle transparent overdue charges computed at ₹{{ daily_fine_rate }}/day.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Books Showcase -->
+<section class="py-5 bg-light border-top border-bottom">
+    <div class="container py-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-end mb-4">
+            <div>
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-1 rounded-pill fw-semibold text-uppercase" style="font-size: 0.75rem;">Hand-Picked Collection</span>
+                <h2 class="h2 fw-bold text-dark mt-2 mb-0">Featured Academic &amp; Literary Titles</h2>
+            </div>
+            <a href="{% url 'catalog' %}" class="btn btn-outline-navy rounded-pill px-4 mt-3 mt-sm-0">
+                View Full Catalog <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        <div class="row g-4">
+            {% for book in featured_books %}
+                <div class="col-sm-6 col-lg-3">
+                    <div class="book-card h-100 shadow-sm">
+                        <div class="book-cover-wrapper">
+                            {% if book.cover_url %}
+                                <img src="{{ book.cover_url }}" alt="{{ book.title }}" class="book-cover-img" loading="lazy"
+                                     onerror="this.onerror=null; this.src='{% static 'images/book-cover-fallback.svg' %}';">
+                            {% else %}
+                                <img src="{% static 'images/book-cover-fallback.svg' %}" alt="{{ book.title }}" class="book-cover-img" loading="lazy">
+                            {% endif %}
+                            <div class="book-overlay-badge">
+                                {% if book.is_available %}
+                                    {% if book.available_copies <= 2 %}
+                                        <span class="availability-pill limited shadow-sm">
+                                            <i class="bi bi-exclamation-circle-fill"></i> Only {{ book.available_copies }} Left
+                                        </span>
+                                    {% else %}
+                                        <span class="availability-pill in-stock shadow-sm">
+                                            <i class="bi bi-check-circle-fill"></i> In Stock ({{ book.available_copies }})
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="availability-pill out-of-stock shadow-sm">
+                                        <i class="bi bi-slash-circle-fill"></i> Checked Out
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <span class="book-genre-badge">{{ book.genre }}</span>
+                        </div>
+                        <div class="book-body d-flex flex-column">
+                            <h3 class="book-title h5 mb-1" title="{{ book.title }}">
+                                <a href="{% url 'book_detail' book.id %}" class="text-decoration-none text-dark">
+                                    {{ book.title }}
+                                </a>
+                            </h3>
+                            <div class="book-author mb-2 text-muted small">
+                                <i class="bi bi-pen text-warning me-1"></i> {{ book.author.name }}
+                            </div>
+                            {% if book.description %}
+                                <p class="book-desc-snippet text-muted small mb-3 flex-grow-1">
+                                    {{ book.description|truncatewords:16 }}
+                                </p>
+                            {% endif %}
+                            <div class="pt-2 border-top d-flex gap-2 align-items-center mt-auto">
+                                <a href="{% url 'book_detail' book.id %}" class="btn btn-sm btn-navy flex-grow-1">
+                                    View Details
+                                </a>
+                                {% if book.is_available %}
+                                    {% if user.is_authenticated and not user.is_staff %}
+                                        <form method="POST" action="{% url 'borrow_book' book.id %}" class="m-0">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-gold" title="Borrow this book">
+                                                <i class="bi bi-journal-plus"></i>
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Popular Genres & Recently Added -->
+<section class="py-5 bg-white">
+    <div class="container py-3">
+        <div class="row gy-5">
+            <!-- Popular Genres Section -->
+            <div class="col-lg-5">
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-1 rounded-pill fw-semibold text-uppercase" style="font-size: 0.75rem;">Categorized Catalog</span>
+                <h2 class="h2 fw-bold text-dark mt-2 mb-3">Popular Subject Areas</h2>
+                <p class="text-muted small mb-4">Explore books categorized by curriculum disciplines and classic literary genres.</p>
+
+                <div class="row g-2">
+                    {% for g in popular_genres %}
+                        <div class="col-sm-6">
+                            <a href="{% url 'catalog' %}?genre={{ g.genre|urlencode }}" class="genre-category-tile p-3 rounded-3 d-flex align-items-center justify-content-between text-decoration-none border shadow-xs hover-lift">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-bookmark-fill text-warning"></i>
+                                    <span class="fw-bold text-dark small">{{ g.genre }}</span>
+                                </div>
+                                <span class="badge bg-light text-muted border font-monospace">{{ g.count }}</span>
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="mt-4">
+                    <a href="{% url 'catalog' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-grid-3x3-gap me-1"></i> Browse All Disciplines
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recently Added Books -->
+            <div class="col-lg-7">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill fw-semibold text-uppercase" style="font-size: 0.75rem;">Fresh Acquisitions</span>
+                        <h2 class="h2 fw-bold text-dark mt-2 mb-0">Recently Added Titles</h2>
+                    </div>
+                    <a href="{% url 'catalog' %}?sort=newest" class="small fw-bold text-primary text-decoration-none">
+                        See All New <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+
+                <div class="row g-3">
+                    {% for book in recent_books %}
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3 border d-flex gap-3 align-items-center h-100 hover-lift">
+                                {% if book.cover_url %}
+                                    <img src="{{ book.cover_url }}" alt="{{ book.title }}" class="rounded shadow-sm" style="width: 50px; height: 68px; object-fit: cover;" onerror="this.onerror=null; this.src='{% static 'images/book-cover-fallback.svg' %}';">
+                                {% else %}
+                                    <img src="{% static 'images/book-cover-fallback.svg' %}" alt="{{ book.title }}" class="rounded shadow-sm" style="width: 50px; height: 68px; object-fit: cover;">
+                                {% endif %}
+                                <div class="overflow-hidden">
+                                    <h4 class="h6 fw-bold mb-1 text-truncate">
+                                        <a href="{% url 'book_detail' book.id %}" class="text-dark text-decoration-none">
+                                            {{ book.title }}
+                                        </a>
+                                    </h4>
+                                    <div class="small text-muted text-truncate mb-1">by {{ book.author.name }}</div>
+                                    <span class="badge bg-white text-dark border font-monospace" style="font-size: 0.7rem;">
+                                        {{ book.genre }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action Banner -->
+<section class="py-5 text-white position-relative" style="background: linear-gradient(135deg, #071224 0%, #0b192c 60%, #102a45 100%); border-top: 1px solid rgba(212, 175, 55, 0.2);">
+    <div class="container text-center py-3">
+        <h2 class="h1 fw-extrabold text-white mb-3">Begin Your Reading Journey Today</h2>
+        <p class="lead text-white-50 max-w-2xl mx-auto mb-4" style="max-width: 600px;">
+            Join thousands of academic students and researchers utilizing the LIBRA portal for seamless borrowing and reading.
+        </p>
+        <div class="d-flex flex-wrap gap-3 justify-content-center">
+            <a href="{% url 'catalog' %}" class="btn btn-gold btn-lg rounded-pill px-4 fw-bold">
+                <i class="bi bi-book-half me-1"></i> Browse Catalog Now
+            </a>
+            {% if not user.is_authenticated %}
+                <a href="{% url 'register' %}" class="btn btn-outline-light btn-lg rounded-pill px-4">
+                    <i class="bi bi-person-plus-fill me-1"></i> Create Student Account
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -588,3 +588,174 @@ class LibraryWorkflowAndPermissionsTests(TestCase):
         self.assertEqual(record_pending.status, 'RETURNED')
         self.book.refresh_from_db()
         self.assertEqual(self.book.available_copies, 2)
+
+
+class NewFeaturesAndSecurityTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.author = Author.objects.create(name="Virginia Woolf", biography="Pioneering modernist author.")
+        self.book = Book.objects.create(
+            title="To the Lighthouse",
+            author=self.author,
+            isbn="978-0156907392",
+            genre="Fiction",
+            total_copies=3,
+            available_copies=3
+        )
+
+        # Student user A and member profile
+        self.user_a = User.objects.create_user(
+            username="student_alice",
+            email="alice@college.edu",
+            password="PasswordAlice123!",
+            first_name="Alice",
+            last_name="Smith"
+        )
+        self.member_a = Member.objects.create(
+            user=self.user_a,
+            name="Alice Smith",
+            email="alice@college.edu",
+            member_id="STU-001"
+        )
+
+        # Student user B and member profile
+        self.user_b = User.objects.create_user(
+            username="student_bob",
+            email="bob@college.edu",
+            password="PasswordBob123!",
+            first_name="Bob",
+            last_name="Jones"
+        )
+        self.member_b = Member.objects.create(
+            user=self.user_b,
+            name="Bob Jones",
+            email="bob@college.edu",
+            member_id="STU-002"
+        )
+
+        # Librarian / Staff user
+        self.staff_user = User.objects.create_user(
+            username="librarian_carol",
+            email="carol@library.edu",
+            password="PasswordCarol123!",
+            is_staff=True
+        )
+
+    def test_home_page_loads_and_displays_hero_and_stats(self):
+        """Landing page renders successfully with editorial hero and real ORM statistics."""
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Your Next Great Read Starts Here")
+        self.assertContains(response, "To the Lighthouse")
+        self.assertIn('total_titles', response.context)
+        self.assertIn('total_inventory', response.context)
+        self.assertEqual(response.context['total_titles'], 1)
+        self.assertEqual(response.context['total_inventory'], 3)
+
+    def test_librarian_dashboard_access_control(self):
+        """Librarian dashboard requires staff privileges; anonymous and student users are blocked."""
+        # 1. Anonymous user redirected to login
+        anon_res = self.client.get(reverse('librarian_dashboard'))
+        self.assertEqual(anon_res.status_code, 302)
+        self.assertIn(reverse('login'), anon_res.url)
+
+        # 2. Student user redirected away to student_dashboard
+        self.client.login(username="student_alice", password="PasswordAlice123!")
+        student_res = self.client.get(reverse('librarian_dashboard'))
+        self.assertEqual(student_res.status_code, 302)
+        self.assertIn(reverse('student_dashboard'), student_res.url)
+        self.client.logout()
+
+        # 3. Staff user receives 200 OK with analytics KPIs
+        self.client.login(username="librarian_carol", password="PasswordCarol123!")
+        staff_res = self.client.get(reverse('librarian_dashboard'))
+        self.assertEqual(staff_res.status_code, 200)
+        self.assertContains(staff_res, "Library Operations &amp; Circulation Analytics")
+        self.assertIn('total_titles', staff_res.context)
+        self.assertIn('active_loans_count', staff_res.context)
+        self.assertIn('genre_labels', staff_res.context)
+
+    def test_student_return_privacy_and_authorization(self):
+        """A student cannot return another member's borrowed book."""
+        # Alice borrows the book
+        record_alice = CirculationRecord.objects.create(
+            book=self.book,
+            member=self.member_a,
+            status='APPROVED',
+            issue_date=timezone.now().date(),
+            due_date=timezone.now().date() + timedelta(days=14)
+        )
+        self.book.issue_copy()
+        self.assertEqual(self.book.available_copies, 2)
+
+        # Bob logs in and attempts to return Alice's record
+        self.client.login(username="student_bob", password="PasswordBob123!")
+
+        # Attempt to return Alice's book via POST
+        post_data = {
+            'circulation_record': record_alice.id,
+            'return_date': timezone.now().date().isoformat()
+        }
+        res = self.client.post(reverse('return_book'), post_data)
+        record_alice.refresh_from_db()
+        self.assertFalse(record_alice.returned)
+        self.assertEqual(record_alice.status, 'APPROVED')
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.available_copies, 2)  # Copies unchanged
+
+        # Now Alice logs in and returns her own book
+        self.client.logout()
+        self.client.login(username="student_alice", password="PasswordAlice123!")
+        alice_post_res = self.client.post(reverse('return_book'), post_data, follow=True)
+        self.assertEqual(alice_post_res.status_code, 200)
+        record_alice.refresh_from_db()
+        self.assertTrue(record_alice.returned)
+        self.assertEqual(record_alice.status, 'RETURNED')
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.available_copies, 3)  # Copy replenished
+
+    def test_seed_data_security(self):
+        """Public visitors and students cannot trigger database seed/reset."""
+        # Anonymous blocked
+        res_anon = self.client.get(reverse('seed_data'))
+        self.assertEqual(res_anon.status_code, 302)
+
+        # Student member redirected away to catalog
+        self.client.login(username="student_alice", password="PasswordAlice123!")
+        res_student = self.client.get(reverse('seed_data'))
+        self.assertEqual(res_student.status_code, 302)
+        self.assertIn(reverse('catalog'), res_student.url)
+        self.client.logout()
+
+        # Staff user permitted via POST
+        self.client.login(username="librarian_carol", password="PasswordCarol123!")
+        res_staff = self.client.post(reverse('seed_data'), {'force_reset': '0'}, follow=True)
+        self.assertEqual(res_staff.status_code, 200)
+        self.assertContains(res_staff, "Sample library dataset successfully updated")
+
+    def test_author_directory_and_crud_permissions(self):
+        """Author directory is publicly searchable, but creation is restricted to staff."""
+        # Public search
+        res = self.client.get(reverse('author_list') + '?q=Virginia')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Virginia Woolf")
+
+        # Student cannot create author (redirects to author_list)
+        self.client.login(username="student_alice", password="PasswordAlice123!")
+        res_student = self.client.post(reverse('author_create'), {'name': 'New Author', 'biography': 'Bio'})
+        self.assertEqual(res_student.status_code, 302)
+        self.assertIn(reverse('author_list'), res_student.url)
+        self.client.logout()
+
+        # Staff can create author
+        self.client.login(username="librarian_carol", password="PasswordCarol123!")
+        res_staff = self.client.post(reverse('author_create'), {'name': 'Chinua Achebe', 'biography': 'Author of Things Fall Apart'}, follow=True)
+        self.assertEqual(res_staff.status_code, 200)
+        self.assertTrue(Author.objects.filter(name='Chinua Achebe').exists())
+
+    def test_institutional_pages(self):
+        """About, policies, help, and due calculator load with 200 OK."""
+        for url_name in ['about', 'policies', 'help', 'calculator', 'due_calculator']:
+            response = self.client.get(reverse(url_name))
+            self.assertEqual(response.status_code, 200)
+

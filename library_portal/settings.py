@@ -38,13 +38,19 @@ if "DEBUG" in os.environ:
 else:
     DEBUG = os.environ.get("RENDER", "False") != "True"
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".onrender.com", "testserver"]
+from decimal import Decimal
+
+# Daily overdue fine rate: configurable in settings/env (Default: ₹5.00 per day)
+DAILY_FINE_RATE = Decimal(os.environ.get('DAILY_FINE_RATE', '5.00'))
+
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".onrender.com", "digital-library-portal.onrender.com", "testserver"]
 render_external_hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
-if render_external_hostname:
+if render_external_hostname and render_external_hostname not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(render_external_hostname)
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.onrender.com",
+    "https://digital-library-portal.onrender.com",
 ]
 if render_external_hostname:
     CSRF_TRUSTED_ORIGINS.append(f"https://{render_external_hostname}")
@@ -168,3 +174,37 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Digital Library Portal <noreply@digitallibrary.portal>')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Application Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'circulation': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+    },
+}

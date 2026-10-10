@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}My Library | Digital Library Portal{% endblock %}
 
@@ -162,7 +163,7 @@
                                             <td>
                                                 <div class="d-flex align-items-center gap-3">
                                                     {% if req.book.cover_url %}
-                                                        <img src="{{ req.book.cover_url }}" alt="Cover" class="rounded shadow-sm" style="width: 44px; height: 58px; object-fit: cover;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';">
+                                                        <img src="{{ req.book.cover_url }}" alt="Cover" class="rounded shadow-sm" style="width: 44px; height: 58px; object-fit: cover;" onerror="this.onerror=null; this.src='{% static 'images/book-cover-fallback.svg' %}';">
                                                     {% else %}
                                                         <div class="bg-secondary bg-opacity-25 rounded d-flex align-items-center justify-content-center text-muted" style="width: 44px; height: 58px;">
                                                             <i class="bi bi-book"></i>
@@ -237,7 +238,7 @@
                                             <td>
                                                 <div class="d-flex align-items-center gap-3">
                                                     {% if loan.book.cover_url %}
-                                                        <img src="{{ loan.book.cover_url }}" alt="Cover" class="rounded shadow-sm" style="width: 44px; height: 58px; object-fit: cover;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';">
+                                                        <img src="{{ loan.book.cover_url }}" alt="Cover" class="rounded shadow-sm" style="width: 44px; height: 58px; object-fit: cover;" onerror="this.onerror=null; this.src='{% static 'images/book-cover-fallback.svg' %}';">
                                                     {% else %}
                                                         <div class="bg-secondary bg-opacity-25 rounded d-flex align-items-center justify-content-center text-muted" style="width: 44px; height: 58px;">
                                                             <i class="bi bi-book"></i>
@@ -279,9 +280,14 @@
                                                 {% endif %}
                                             </td>
                                             <td class="text-end">
-                                                <a href="{% url 'book_detail' loan.book.id %}" class="btn btn-sm btn-outline-secondary">
-                                                    <i class="bi bi-eye"></i> View
-                                                </a>
+                                                <div class="d-inline-flex gap-2">
+                                                    <a href="{% url 'return_specific_record' loan.id %}" class="btn btn-sm btn-outline-primary" title="Return this book">
+                                                        <i class="bi bi-arrow-return-left me-1"></i> Return
+                                                    </a>
+                                                    <a href="{% url 'book_detail' loan.book.id %}" class="btn btn-sm btn-outline-secondary" title="View details">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </div>
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -331,7 +337,14 @@
                                                 </span>
                                             </td>
                                             <td class="text-end">
-                                                <a href="{% url 'book_detail' loan.book.id %}" class="btn btn-sm btn-outline-secondary">View Details</a>
+                                                <div class="d-inline-flex gap-2">
+                                                    <a href="{% url 'return_specific_record' loan.id %}" class="btn btn-sm btn-warning text-dark" title="Return this book">
+                                                        <i class="bi bi-arrow-return-left me-1"></i> Return
+                                                    </a>
+                                                    <a href="{% url 'book_detail' loan.book.id %}" class="btn btn-sm btn-outline-secondary" title="View details">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </div>
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -384,7 +397,14 @@
                                                 </span>
                                             </td>
                                             <td class="text-end">
-                                                <a href="{% url 'book_detail' loan.book.id %}" class="btn btn-sm btn-outline-danger">View Book</a>
+                                                <div class="d-inline-flex gap-2">
+                                                    <a href="{% url 'return_specific_record' loan.id %}" class="btn btn-sm btn-danger" title="Return overdue book">
+                                                        <i class="bi bi-arrow-return-left me-1"></i> Return Book
+                                                    </a>
+                                                    <a href="{% url 'book_detail' loan.book.id %}" class="btn btn-sm btn-outline-danger" title="View details">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                </div>
                                             </td>
                                         </tr>
                                     {% endfor %}

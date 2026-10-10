@@ -1,5 +1,7 @@
+import logging
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth import login, logout, authenticate
@@ -14,10 +16,12 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from .models import Book, Author, Member, CirculationRecord, DAILY_FINE_RATE
 from .forms import (
-    BookIssueForm, BookReturnForm, BookForm, MemberForm,
+    BookIssueForm, BookReturnForm, BookForm, MemberForm, AuthorForm,
     StudentRegistrationForm, StyledAuthenticationForm,
     StyledPasswordChangeForm, StyledPasswordResetForm, StyledSetPasswordForm
 )
+
+logger = logging.getLogger('circulation')
 
 
 def get_or_create_member_for_user(user):
@@ -40,6 +44,44 @@ def get_or_create_member_for_user(user):
             member.user = user
             member.save(update_fields=['user'])
     return member
+
+
+def home_view(request):
+    """
+    Public Homepage / Landing Page:
+    - Hero: 'Your Next Great Read Starts Here.'
+    - Direct catalog search bar
+    - Real-time library statistics (titles, physical copies, active loans, members)
+    - Featured & recently added books from live database
+    - Popular genre categories
+    - 'How Borrowing Works' 3-step circulation explanation
+    - Navigation to catalog and user library
+    """
+    total_titles = Book.objects.count()
+    total_inventory = Book.objects.aggregate(total=Sum('total_copies'))['total'] or 0
+    available_inventory = Book.objects.aggregate(total=Sum('available_copies'))['total'] or 0
+    active_loans = CirculationRecord.objects.filter(status='APPROVED', returned=False).count()
+    total_members = Member.objects.count()
+
+    featured_books = Book.objects.select_related('author').filter(available_copies__gt=0).order_by('-total_copies')[:4]
+    if not featured_books.exists():
+        featured_books = Book.objects.select_related('author').all()[:4]
+
+    recent_books = Book.objects.select_related('author').order_by('-id')[:4]
+    popular_genres = Book.objects.values('genre').annotate(count=Count('id')).order_by('-count')[:6]
+
+    context = {
+        'total_titles': total_titles,
+        'total_inventory': total_inventory,
+        'available_inventory': available_inventory,
+        'active_loans': active_loans,
+        'total_members': total_members,
+        'featured_books': featured_books,
+        'recent_books': recent_books,
+        'popular_genres': popular_genres,
+        'daily_fine_rate': DAILY_FINE_RATE,
+    }
+    return render(request, 'circulation/home.html', context)
 
 
 def catalog_view(request):
@@ -339,27 +381,44 @@ def book_issue_view(request, book_id=None):
 
 @login_required
 def book_return_view(request, record_id=None):
-    """Workflow to return a borrowed book and compute overdue fines safely at ₹5/day."""
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.error(request, "Access restricted to authorized administrators.")
-        return redirect('student_dashboard')
+    """
+    Workflow to return an active loan and calculate overdue fines safely at configured rate.
+    Accessible to authorized staff (for any record) and students (for their own records).
+    """
+    is_staff = request.user.is_staff or request.user.is_superuser
+    member = None
+    if not is_staff:
+        member = get_or_create_member_for_user(request.user)
 
     selected_record = None
     if record_id:
         selected_record = get_object_or_404(CirculationRecord.objects.select_related('book', 'member'), id=record_id)
+        if not is_staff and selected_record.member != member:
+            messages.error(request, "Access restricted to your own borrowing records.")
+            return redirect('student_dashboard')
         if selected_record.returned:
-            messages.info(request, f"Book '{selected_record.book.title}' is already returned.")
-            return redirect('member_dashboard', member_id=selected_record.member.id)
+            messages.info(request, f"Book '{selected_record.book.title}' is already marked as returned.")
+            if is_staff:
+                return redirect('member_dashboard', member_id=selected_record.member.id)
+            return redirect('student_dashboard')
 
     if request.method == 'POST':
-        form = BookReturnForm(request.POST)
+        form = BookReturnForm(request.POST, member=member)
         if form.is_valid():
             with transaction.atomic():
                 rec_obj = form.cleaned_data['circulation_record']
                 record = CirculationRecord.objects.select_for_update().get(id=rec_obj.id)
+
+                # Verify permissions on the chosen record
+                if not is_staff and record.member != member:
+                    messages.error(request, "Permission denied: You cannot return another member's book.")
+                    return redirect('student_dashboard')
+
                 if record.returned:
                     messages.warning(request, f"Book '{record.book.title}' is already marked as returned.")
-                    return redirect('member_dashboard', member_id=record.member.id)
+                    if is_staff:
+                        return redirect('member_dashboard', member_id=record.member.id)
+                    return redirect('student_dashboard')
 
                 return_date = form.cleaned_data['return_date']
                 fine = record.complete_return(return_date=return_date, fine_rate=DAILY_FINE_RATE)
@@ -368,14 +427,16 @@ def book_return_view(request, record_id=None):
                 messages.warning(
                     request,
                     f"Book '{record.book.title}' returned by {record.member.name}. "
-                    f"OVERDUE by {record.days_overdue} day(s)! Overdue Fine: ₹{fine:.2f}."
+                    f"OVERDUE by {record.days_overdue} day(s)! Overdue fine assessed: ₹{fine:.2f}."
                 )
             else:
                 messages.success(
                     request,
                     f"Book '{record.book.title}' returned on time by {record.member.name}! No overdue fine."
                 )
-            return redirect('member_dashboard', member_id=record.member.id)
+            if is_staff:
+                return redirect('member_dashboard', member_id=record.member.id)
+            return redirect('student_dashboard')
         else:
             messages.error(request, "Please check the form inputs.")
     else:
@@ -383,9 +444,12 @@ def book_return_view(request, record_id=None):
         if selected_record:
             initial['circulation_record'] = selected_record
             initial['return_date'] = timezone.now().date()
-        form = BookReturnForm(initial=initial)
+        form = BookReturnForm(initial=initial, member=member)
 
-    active_records = CirculationRecord.objects.filter(status='APPROVED', returned=False).select_related('book', 'member').order_by('due_date')
+    if is_staff:
+        active_records = CirculationRecord.objects.filter(status='APPROVED', returned=False).select_related('book', 'member').order_by('due_date')
+    else:
+        active_records = CirculationRecord.objects.filter(member=member, status='APPROVED', returned=False).select_related('book', 'member').order_by('due_date')
 
     context = {
         'form': form,
@@ -393,6 +457,7 @@ def book_return_view(request, record_id=None):
         'active_records': active_records,
         'daily_fine_rate': DAILY_FINE_RATE,
         'today': timezone.now().date(),
+        'is_staff': is_staff,
     }
     return render(request, 'circulation/return_book.html', context)
 
@@ -465,7 +530,7 @@ class CustomPasswordChangeDoneView(LoginRequiredMixin, auth_views.PasswordChange
 
 
 class CustomPasswordResetView(auth_views.PasswordResetView):
-    """Password reset request view with graceful email error handling."""
+    """Password reset request view with logging and graceful email error handling."""
     form_class = StyledPasswordResetForm
     template_name = 'circulation/password_reset.html'
     email_template_name = 'circulation/password_reset_email.html'
@@ -473,12 +538,17 @@ class CustomPasswordResetView(auth_views.PasswordResetView):
     success_url = reverse_lazy('password_reset_done')
 
     def form_valid(self, form):
+        email = form.cleaned_data.get('email', '')
+        logger.info(f"Password reset requested for registered account: {email}")
         try:
-            return super().form_valid(form)
+            response = super().form_valid(form)
+            logger.info(f"Password reset instructions dispatched to {email} using {settings.EMAIL_BACKEND}")
+            return response
         except Exception as e:
+            logger.error(f"Password reset delivery failure for {email}: {type(e).__name__} - {e}")
             messages.error(
                 self.request,
-                f"Password reset email could not be sent: {str(e)}. "
+                f"Password reset email could not be delivered ({type(e).__name__}: {str(e)}). "
                 "Please ensure email settings (EMAIL_HOST, EMAIL_PORT, etc.) are configured in environment variables, "
                 "or contact your library system administrator."
             )
@@ -683,12 +753,19 @@ def calculator_view(request):
     })
 
 
+@login_required
 def seed_data_view(request):
-    """One-click seed demo dataset to showcase all functionality."""
+    """Staff-only seed demo dataset with safe controls to prevent destructive wipes."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "Access restricted to authorized librarians and staff.")
+        return redirect('catalog')
+
     if request.method == 'POST':
         from .seed_data import populate_sample_data
-        count = populate_sample_data()
-        messages.success(request, f"Sample library dataset successfully loaded ({count} books, rich descriptions & demo student accounts seeded)!")
+        force_reset = request.POST.get('force_reset') == '1'
+        count = populate_sample_data(force_reset=force_reset)
+        mode = "fresh demo records loaded" if force_reset else "catalog safely synchronized"
+        messages.success(request, f"Sample library dataset successfully updated ({count} books, {mode})!")
         return redirect('catalog')
     return render(request, 'circulation/seed_confirm.html')
 
@@ -713,3 +790,183 @@ def api_calculate_fine(request):
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+def librarian_dashboard_view(request):
+    """
+    Executive Librarian Analytics & Operations Dashboard:
+    - Live ORM metrics (Titles, Physical Copies, Available Copies, Registered Members,
+      Active Loans, Overdue Loans, Pending Requests, Fines Collected & Outstanding)
+    - Chart.js dataset: Category/Genre distribution, Loan status breakdown
+    - Popular books leaderboard
+    - Pending requests approval/rejection queue
+    - Overdue loans quick-action table
+    - Recent circulation activity log
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "Access restricted to authorized librarians.")
+        return redirect('student_dashboard')
+
+    today = timezone.now().date()
+
+    # Core Library Metrics
+    total_titles = Book.objects.count()
+    total_copies = Book.objects.aggregate(total=Sum('total_copies'))['total'] or 0
+    available_copies = Book.objects.aggregate(total=Sum('available_copies'))['total'] or 0
+    issued_copies = max(0, total_copies - available_copies)
+    total_members = Member.objects.count()
+
+    active_loans = CirculationRecord.objects.filter(status='APPROVED', returned=False).select_related('book', 'member')
+    active_loans_count = active_loans.count()
+
+    overdue_loans = active_loans.filter(due_date__lt=today).order_by('due_date')
+    overdue_loans_count = overdue_loans.count()
+
+    pending_requests = CirculationRecord.objects.filter(status='PENDING').select_related('book', 'member').order_by('-request_date', '-id')
+    pending_count = pending_requests.count()
+
+    due_soon_count = active_loans.filter(due_date__gte=today, due_date__lte=today + timedelta(days=3)).count()
+
+    # Fine calculations from real ORM data
+    collected_fines = CirculationRecord.objects.filter(returned=True).aggregate(total=Sum('fine_amount'))['total'] or Decimal('0.00')
+    outstanding_estimated_fines = sum((rec.current_estimated_fine for rec in overdue_loans), Decimal('0.00'))
+
+    # Popular books (Top 5 by borrowing count)
+    popular_books = Book.objects.annotate(
+        borrow_count=Count('circulation_records')
+    ).order_by('-borrow_count')[:5]
+
+    # Category / Genre breakdown for Chart.js
+    genre_data = Book.objects.values('genre').annotate(count=Count('id')).order_by('-count')[:8]
+    genre_labels = [g['genre'] for g in genre_data]
+    genre_counts = [g['count'] for g in genre_data]
+
+    # Status distribution for Chart.js
+    returned_count = CirculationRecord.objects.filter(returned=True).count()
+    status_counts = {
+        'Active': active_loans_count - overdue_loans_count,
+        'Due Soon': due_soon_count,
+        'Overdue': overdue_loans_count,
+        'Pending': pending_count,
+        'Returned': returned_count,
+    }
+
+    # Recent Activity (last 10 issue/return events)
+    recent_activity = CirculationRecord.objects.select_related('book', 'member').order_by('-id')[:10]
+
+    context = {
+        'total_titles': total_titles,
+        'total_copies': total_copies,
+        'available_copies': available_copies,
+        'issued_copies': issued_copies,
+        'total_members': total_members,
+        'active_loans_count': active_loans_count,
+        'overdue_loans_count': overdue_loans_count,
+        'pending_count': pending_count,
+        'due_soon_count': due_soon_count,
+        'collected_fines': collected_fines,
+        'outstanding_estimated_fines': outstanding_estimated_fines,
+        'popular_books': popular_books,
+        'genre_labels': genre_labels,
+        'genre_counts': genre_counts,
+        'status_counts': status_counts,
+        'overdue_loans': overdue_loans[:10],
+        'pending_requests': pending_requests[:10],
+        'recent_activity': recent_activity,
+        'daily_fine_rate': DAILY_FINE_RATE,
+        'today': today,
+    }
+    return render(request, 'circulation/librarian_dashboard.html', context)
+
+
+def author_list_view(request):
+    """Directory of library authors with biography and catalog items."""
+    query = request.GET.get('q', '').strip()
+    authors = Author.objects.prefetch_related('books').all()
+    if query:
+        authors = authors.filter(Q(name__icontains=query) | Q(biography__icontains=query))
+    return render(request, 'circulation/author_list.html', {
+        'authors': authors,
+        'query': query,
+    })
+
+
+@login_required
+def author_create_view(request):
+    """Add a new author to the library catalog (Staff only)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "Access restricted to authorized librarians.")
+        return redirect('author_list')
+
+    if request.method == 'POST':
+        form = AuthorForm(request.POST)
+        if form.is_valid():
+            author = form.save()
+            messages.success(request, f"Author '{author.name}' added successfully!")
+            return redirect('author_list')
+    else:
+        form = AuthorForm()
+    return render(request, 'circulation/author_form.html', {
+        'form': form,
+        'title': 'Add New Author',
+    })
+
+
+@login_required
+def author_edit_view(request, author_id):
+    """Edit author details (Staff only)."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "Access restricted to authorized librarians.")
+        return redirect('author_list')
+
+    author = get_object_or_404(Author, id=author_id)
+    if request.method == 'POST':
+        form = AuthorForm(request.POST, instance=author)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Author '{author.name}' updated successfully!")
+            return redirect('author_list')
+    else:
+        form = AuthorForm(instance=author)
+    return render(request, 'circulation/author_form.html', {
+        'form': form,
+        'title': f'Edit Author: {author.name}',
+        'author': author,
+    })
+
+
+def about_view(request):
+    """About the Digital Library & Circulation Portal."""
+    total_titles = Book.objects.count()
+    total_copies = Book.objects.aggregate(total=Sum('total_copies'))['total'] or 0
+    total_members = Member.objects.count()
+    return render(request, 'circulation/about.html', {
+        'total_titles': total_titles,
+        'total_copies': total_copies,
+        'total_members': total_members,
+    })
+
+
+def policies_view(request):
+    """Circulation Rules, 14-day Lending Terms & Overdue Fine Policies."""
+    return render(request, 'circulation/policies.html', {
+        'daily_fine_rate': DAILY_FINE_RATE,
+    })
+
+
+def help_view(request):
+    """Frequently Asked Questions & Member Help Guide."""
+    return render(request, 'circulation/help.html', {
+        'daily_fine_rate': DAILY_FINE_RATE,
+    })
+
+
+def handler404_view(request, exception=None):
+    """Branded, friendly 404 error page without server tracebacks."""
+    return render(request, '404.html', status=404)
+
+
+def handler500_view(request):
+    """Branded, friendly 500 error page without sensitive tracebacks."""
+    return render(request, '500.html', status=500)

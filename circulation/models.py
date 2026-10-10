@@ -5,7 +5,7 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-DAILY_FINE_RATE = Decimal('5.00')  # ₹5.00 fine per day overdue
+DAILY_FINE_RATE = getattr(settings, 'DAILY_FINE_RATE', Decimal('5.00'))  # Configurable daily overdue fine rate (Default: ₹5.00)
 
 STATUS_PENDING = 'PENDING'
 STATUS_APPROVED = 'APPROVED'
