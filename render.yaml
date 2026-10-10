@@ -2,18 +2,44 @@ services:
   - type: web
     name: digital-library-portal
     runtime: python
+
     buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate"
+
     startCommand: "gunicorn library_portal.wsgi:application"
+
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.0"
+
       - key: SECRET_KEY
         generateValue: true
+
       - key: DEBUG
         value: "False"
+
       - key: WEB_CONCURRENCY
         value: "2"
+
       - key: DAILY_FINE_RATE
         value: "5.00"
+
       - key: EMAIL_BACKEND
         value: "django.core.mail.backends.smtp.EmailBackend"
+
+      - key: EMAIL_HOST
+        value: "smtp.gmail.com"
+
+      - key: EMAIL_PORT
+        value: "587"
+
+      - key: EMAIL_USE_TLS
+        value: "True"
+
+      - key: EMAIL_HOST_USER
+        sync: false
+
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
