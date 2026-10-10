@@ -686,3 +686,214 @@ footer a {
 footer a:hover {
   color: var(--gold-400);
 }
+
+/* ==========================================================================
+   AUTHENTICATION & PASSWORD RESET EXPERIENCE
+   Refined Navy-Blue, White, and Subtle Gold Luxury Design System
+   ========================================================================== */
+.auth-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  box-shadow: 0 16px 40px -8px rgba(7, 18, 36, 0.16), 0 0 1px rgba(0, 0, 0, 0.08) !important;
+  transition: var(--transition);
+}
+
+.auth-card-header {
+  background: linear-gradient(135deg, #071224 0%, #0b192c 50%, #102a45 100%) !important;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.35) !important;
+  position: relative;
+}
+
+.auth-icon-badge {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-400);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.22);
+}
+
+.auth-success-badge {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.12) 0%, rgba(212, 175, 55, 0.18) 100%);
+  border: 2px solid var(--emerald-600);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--emerald-600);
+  box-shadow: 0 0 24px rgba(5, 150, 105, 0.25);
+  animation: successPulse 2.4s infinite ease-in-out;
+}
+
+@keyframes successPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(5, 150, 105, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+}
+
+.auth-input-group {
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.auth-input-group .input-group-text {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: var(--text-muted);
+}
+
+.auth-input-group .form-control {
+  border-color: #cbd5e1;
+  font-size: 0.95rem;
+}
+
+.auth-input-group .form-control:focus {
+  border-color: var(--gold-500);
+  box-shadow: 0 0 0 0.25rem rgba(212, 175, 55, 0.2);
+  z-index: 3;
+}
+
+.toggle-password-btn {
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: var(--text-muted);
+  padding: 0.6rem 0.95rem;
+  transition: var(--transition);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-password-btn:hover {
+  background-color: #e2e8f0;
+  color: var(--navy-900);
+  border-color: #94a3b8;
+}
+
+.toggle-password-btn:focus-visible {
+  outline: 2px solid var(--gold-500);
+  outline-offset: 2px;
+}
+
+.text-gold-accent {
+  color: var(--gold-600) !important;
+}
+
+/* Password Strength Indicator */
+.password-strength-container {
+  background: transparent;
+}
+
+.strength-progress {
+  background-color: #e2e8f0;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.strength-bar {
+  transition: width 0.35s ease, background-color 0.35s ease;
+}
+
+.strength-bar.weak {
+  background-color: var(--rose-600) !important;
+}
+
+.strength-bar.fair {
+  background-color: var(--amber-600) !important;
+}
+
+.strength-bar.strong {
+  background-color: var(--emerald-600) !important;
+}
+
+.strength-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background-color: #e2e8f0;
+  color: #475569;
+}
+
+.strength-badge.weak {
+  background-color: var(--rose-100);
+  color: var(--rose-600);
+  border: 1px solid #fecdd3;
+}
+
+.strength-badge.fair {
+  background-color: var(--amber-100);
+  color: var(--amber-600);
+  border: 1px solid #fde68a;
+}
+
+.strength-badge.strong {
+  background-color: var(--emerald-100);
+  color: var(--emerald-600);
+  border: 1px solid #a7f3d0;
+}
+
+.strength-feedback-tip {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.password-requirements {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-sm);
+}
+
+.req-item {
+  display: flex;
+  align-items: center;
+  transition: var(--transition);
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.req-item.valid {
+  color: var(--emerald-600) !important;
+  font-weight: 600;
+}
+
+.req-item.valid i {
+  color: var(--emerald-600) !important;
+}
+
+.match-feedback {
+  font-size: 0.82rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.match-feedback.valid {
+  color: var(--emerald-600);
+}
+
+.match-feedback.invalid {
+  color: var(--rose-600);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-success-badge {
+    animation: none !important;
+  }
+  .strength-bar {
+    transition: none !important;
+  }
+  .auth-card {
+    transition: none !important;
+  }
+}
+

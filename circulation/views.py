@@ -566,6 +566,14 @@ class CustomPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
     template_name = 'circulation/password_reset_confirm.html'
     success_url = reverse_lazy('password_reset_complete')
 
+    def form_valid(self, form):
+        logger.info("Password reset successfully completed for user account via verified token.")
+        messages.success(
+            self.request,
+            "Your password has been updated successfully! You can now sign in with your new password."
+        )
+        return super().form_valid(form)
+
 
 class CustomPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
     """Final confirmation page after successful password reset via token."""

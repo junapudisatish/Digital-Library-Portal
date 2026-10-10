@@ -6,6 +6,9 @@ from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.core import mail
 from django.utils import timezone
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model
 from .models import Author, Book, Member, CirculationRecord, DAILY_FINE_RATE
 
@@ -758,4 +761,136 @@ class NewFeaturesAndSecurityTests(TestCase):
         for url_name in ['about', 'policies', 'help', 'calculator', 'due_calculator']:
             response = self.client.get(reverse(url_name))
             self.assertEqual(response.status_code, 200)
+
+
+class PasswordResetWorkflowTests(TestCase):
+    """
+    Comprehensive test suite for the upgraded password-reset workflow:
+    - Request page and email dispatch
+    - Valid and invalid/expired token verification
+    - Server-side password strength validation (Django AUTH_PASSWORD_VALIDATORS)
+    - Successful password change, token single-use invalidation, and login authentication.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="student_reader",
+            email="reader@library.demo",
+            password="InitialPassword123!",
+            first_name="Reader",
+            last_name="Student"
+        )
+        self.uidb64 = urlsafe_base64_encode(force_bytes(self.user.pk))
+        self.valid_token = default_token_generator.make_token(self.user)
+
+    def test_password_reset_page_loads_with_brand_and_form(self):
+        """Password reset request page renders properly with LIBRA branding."""
+        res = self.client.get(reverse('password_reset'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "LIBRA")
+        self.assertContains(res, "Reset Account Password")
+        self.assertContains(res, "Send Reset Link")
+
+    def test_password_reset_email_dispatch_flow(self):
+        """Requesting a reset email dispatches an email with valid token link."""
+        mail.outbox = []
+        res = self.client.post(reverse('password_reset'), {'email': 'reader@library.demo'}, follow=True)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Check Your Email")
+        self.assertEqual(len(mail.outbox), 1)
+        email_body = mail.outbox[0].body
+        self.assertIn("/password-reset/confirm/", email_body)
+
+    def test_password_reset_confirm_with_valid_token_displays_form(self):
+        """Opening a valid reset link renders the modern password form with strength meter."""
+        confirm_url = reverse('password_reset_confirm', kwargs={'uidb64': self.uidb64, 'token': self.valid_token})
+        res = self.client.get(confirm_url, follow=True)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Create a New Password")
+        self.assertContains(res, "Password Strength:")
+        self.assertContains(res, "Password Requirements:")
+        self.assertContains(res, "toggle-password-btn")
+        self.assertContains(res, "id_new_password1")
+        self.assertContains(res, "id_new_password2")
+        self.assertContains(res, "Reset Password")
+
+    def test_password_reset_confirm_with_invalid_or_expired_token(self):
+        """Invalid or expired reset links display friendly error and no form."""
+        bad_confirm_url = reverse('password_reset_confirm', kwargs={'uidb64': self.uidb64, 'token': 'invalid-token-12345'})
+        res = self.client.get(bad_confirm_url, follow=True)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Invalid or Expired Link")
+        self.assertContains(res, "Request a New Reset Link")
+        self.assertNotContains(res, 'id="passwordResetConfirmForm"')
+
+    def test_password_reset_mismatched_passwords_rejected(self):
+        """Submitting mismatched passwords is rejected by Django."""
+        confirm_url = reverse('password_reset_confirm', kwargs={'uidb64': self.uidb64, 'token': self.valid_token})
+        self.client.get(confirm_url, follow=True)
+        set_pwd_url = reverse('password_reset_confirm', kwargs={'uidb64': self.uidb64, 'token': 'set-password'})
+        res = self.client.post(set_pwd_url, {
+            'new_password1': 'StrongPass2026#Valid',
+            'new_password2': 'DifferentPassword2026#Mismatch',
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.context['form'].errors)
+
+    def test_password_reset_violating_validators_rejected(self):
+        """Submitting weak passwords violating Django validators is rejected by server."""
+        confirm_url = reverse('password_reset_confirm', kwargs={'uidb64': self.uidb64, 'token': self.valid_token})
+        self.client.get(confirm_url, follow=True)
+        set_pwd_url = reverse('password_reset_confirm', kwargs={'uidb64': self.uidb64, 'token': 'set-password'})
+        res = self.client.post(set_pwd_url, {
+            'new_password1': '12345',
+            'new_password2': '12345',
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.context['form'].errors)
+
+    def test_password_reset_success_updates_password_and_authenticates(self):
+        """Submitting a valid password updates user password hash, renders success page, and enables login."""
+        confirm_url = reverse('password_reset_confirm', kwargs={'uidb64': self.uidb64, 'token': self.valid_token})
+        self.client.get(confirm_url, follow=True)
+        set_pwd_url = reverse('password_reset_confirm', kwargs={'uidb64': self.uidb64, 'token': 'set-password'})
+        new_strong_pass = 'NovelBookworm@2026#Libra'
+        res = self.client.post(set_pwd_url, {
+            'new_password1': new_strong_pass,
+            'new_password2': new_strong_pass,
+        }, follow=True)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Password Reset Successful!")
+        self.assertContains(res, "Continue to Login")
+        self.assertContains(res, "countdownSeconds")
+
+        # Refresh user from DB
+        self.user.refresh_from_db()
+
+        # Old password must NO LONGER authenticate
+        old_auth_success = self.client.login(username="student_reader", password="InitialPassword123!")
+        self.assertFalse(old_auth_success)
+
+        # New password MUST authenticate successfully
+        new_auth_success = self.client.login(username="student_reader", password=new_strong_pass)
+        self.assertTrue(new_auth_success)
+
+    def test_token_cannot_be_reused_after_successful_reset(self):
+        """A reset token cannot be reused once the password has been changed (single-use protection)."""
+        confirm_url = reverse('password_reset_confirm', kwargs={'uidb64': self.uidb64, 'token': self.valid_token})
+        self.client.get(confirm_url, follow=True)
+        set_pwd_url = reverse('password_reset_confirm', kwargs={'uidb64': self.uidb64, 'token': 'set-password'})
+        new_strong_pass = 'NovelBookworm@2026#Libra'
+        self.client.post(set_pwd_url, {
+            'new_password1': new_strong_pass,
+            'new_password2': new_strong_pass,
+        })
+
+        # Clear session to simulate reopening or another device
+        self.client.session.flush()
+
+        # Try accessing confirm URL again with the same token
+        res_reused = self.client.get(confirm_url, follow=True)
+        self.assertEqual(res_reused.status_code, 200)
+        self.assertContains(res_reused, "Invalid or Expired Link")
+
 

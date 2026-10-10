@@ -294,13 +294,29 @@ class StyledPasswordResetForm(PasswordResetForm):
 
 
 class StyledSetPasswordForm(SetPasswordForm):
-    """Bootstrap 5 styled Set Password Form for reset confirmation."""
+    """Bootstrap 5 styled Set Password Form for reset confirmation with accessibility attributes."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
-            field.widget.attrs.update({'class': 'form-control'})
+            field.widget.attrs.update({
+                'class': 'form-control form-control-lg password-input-field',
+                'autocomplete': 'new-password',
+            })
         if 'new_password1' in self.fields:
-            self.fields['new_password1'].widget.attrs.update({'placeholder': 'Enter new password'})
+            self.fields['new_password1'].widget.attrs.update({
+                'placeholder': 'Enter new password',
+                'id': 'id_new_password1',
+                'aria-label': 'New Password',
+                'aria-describedby': 'strengthTip',
+            })
+            self.fields['new_password1'].help_text = ''
         if 'new_password2' in self.fields:
-            self.fields['new_password2'].widget.attrs.update({'placeholder': 'Confirm new password'})
+            self.fields['new_password2'].widget.attrs.update({
+                'placeholder': 'Confirm new password',
+                'id': 'id_new_password2',
+                'aria-label': 'Confirm New Password',
+                'aria-describedby': 'passwordMatchFeedback',
+            })
+            self.fields['new_password2'].help_text = ''
+
 
