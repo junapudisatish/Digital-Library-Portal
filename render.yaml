@@ -16,4 +16,4 @@ services:
       - key: DAILY_FINE_RATE
         value: "5.00"
       - key: EMAIL_BACKEND
-        value: "django.core.mail.backends.console.EmailBackend"
+        value: "django.core.mail.backends.smtp.EmailBackend"
