@@ -24,10 +24,13 @@ services:
         value: "5.00"
 
       - key: EMAIL_BACKEND
-        value: "django.core.mail.backends.smtp.EmailBackend"
+        value: "library_portal.email_backends.BrevoEmailBackend"
 
-      - key: EMAIL_HOST
-        value: "smtp.gmail.com"
+      - key: BREVO_API_KEY
+        sync: false
+
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
 
       - key: EMAIL_PORT
         value: "587"
