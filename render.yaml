@@ -3,9 +3,9 @@ services:
     name: digital-library-portal
     runtime: python
 
-    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate"
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate && python create_superuser.py"
 
-    startCommand: "gunicorn library_portal.wsgi:application"
+    startCommand: "python create_superuser.py && gunicorn library_portal.wsgi:application"
 
     envVars:
       - key: PYTHON_VERSION
@@ -22,6 +22,12 @@ services:
 
       - key: DAILY_FINE_RATE
         value: "5.00"
+
+      - key: DJANGO_SUPERUSER_USERNAME
+        value: "admin"
+
+      - key: DJANGO_SUPERUSER_PASSWORD
+        value: "admini!123"
 
       - key: EMAIL_BACKEND
         value: "library_portal.email_backends.BrevoEmailBackend"
@@ -42,7 +48,4 @@ services:
         sync: false
 
       - key: EMAIL_HOST_PASSWORD
-        sync: false
-
-      - key: DEFAULT_FROM_EMAIL
         sync: false

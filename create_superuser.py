@@ -12,7 +12,7 @@ def create_admin():
     User = get_user_model()
     username = os.environ.get('DJANGO_SUPERUSER_USERNAME', 'admin')
     email = os.environ.get('DJANGO_SUPERUSER_EMAIL', 'admin@library.demo')
-    password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+    password = os.environ.get('DJANGO_SUPERUSER_PASSWORD', 'admini!123')
 
     admin_user = User.objects.filter(username=username).first()
     if not admin_user:
@@ -23,12 +23,14 @@ def create_admin():
         else:
             print(f"Notice: Superuser '{username}' does not exist and DJANGO_SUPERUSER_PASSWORD is not set in environment.")
     else:
-        # Safely verify permissions on existing superuser without resetting their password
+        # Update password and ensure active staff and superuser permissions
+        if password:
+            admin_user.set_password(password)
         admin_user.is_staff = True
         admin_user.is_superuser = True
         admin_user.is_active = True
         admin_user.save()
-        print(f"Verified superuser '{username}' exists with active staff and superuser permissions (password preserved).")
+        print(f"Verified superuser '{username}' exists and updated password to configured password.")
 
     # Automatically populate sample books and circulation records if database is empty
     if Book.objects.count() == 0:
