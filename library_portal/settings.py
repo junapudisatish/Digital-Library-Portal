@@ -24,13 +24,25 @@ if _env_file.exists():
     except Exception:
         pass
 
-# SECRET_KEY: Strictly loaded from environment variable in production
+# SECRET_KEY: Loaded from environment or .env; fallback to persistent local key in development
 SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     if os.environ.get("RENDER") == "True" or os.environ.get("DEBUG", "").lower() == "false":
         raise ValueError("SECRET_KEY environment variable must be set in production.")
-    # In local development without SECRET_KEY in environment or .env, generate an ephemeral session key
-    SECRET_KEY = secrets.token_urlsafe(50)
+    # In local development without SECRET_KEY in environment or .env,
+    # preserve a stable key across restarts so user login sessions do not invalidate
+    _secret_file = BASE_DIR / '.local_secret_key'
+    if _secret_file.exists():
+        try:
+            SECRET_KEY = _secret_file.read_text(encoding='utf-8').strip()
+        except Exception:
+            SECRET_KEY = ""
+    if not SECRET_KEY:
+        SECRET_KEY = secrets.token_urlsafe(50)
+        try:
+            _secret_file.write_text(SECRET_KEY, encoding='utf-8')
+        except Exception:
+            pass
 
 # DEBUG is True locally, False when deployed or when explicitly set
 if "DEBUG" in os.environ:
@@ -98,11 +110,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'library_portal.wsgi.application'
 
 # Database
-# Using SQLite as required by assignment specification (Phase 2 & Phase 15)
+# Using SQLite with persistent storage support for local and Render deployments
+_db_env_path = os.environ.get('SQLITE_DB_PATH')
+if _db_env_path:
+    DB_PATH = Path(_db_env_path)
+elif os.environ.get('RENDER') == 'True' and Path('/var/data').is_dir():
+    DB_PATH = Path('/var/data/db.sqlite3')
+else:
+    DB_PATH = BASE_DIR / 'db.sqlite3'
+
+# Ensure the database parent directory exists if using a custom mount path
+try:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': DB_PATH,
     }
 }
 
@@ -159,6 +185,12 @@ else:
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'student_dashboard'
 LOGOUT_REDIRECT_URL = 'catalog'
+
+# Session Persistence Settings (Prevents premature logout across server restarts)
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 1209600  # 14 days in seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_SAVE_EVERY_REQUEST = False
 
 # Email Configuration (Environment configurable for Password Reset flow)
 EMAIL_BACKEND = os.environ.get(

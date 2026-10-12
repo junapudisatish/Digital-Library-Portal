@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+.local_secret_key
 
 # SQLite Database
 db.sqlite3
@@ -9,6 +10,7 @@ db.sqlite3
 *.sqlite3-journal
 *.sqlite3.bak
 *.bak
+*.pre_fix_backup
 
 # Python Bytecode and Caches
 __pycache__/

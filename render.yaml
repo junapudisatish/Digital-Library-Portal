@@ -3,9 +3,14 @@ services:
     name: digital-library-portal
     runtime: python
 
-    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate && python create_superuser.py"
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input"
 
-    startCommand: "python create_superuser.py && gunicorn library_portal.wsgi:application"
+    startCommand: "python manage.py migrate && python create_superuser.py && gunicorn library_portal.wsgi.application"
+
+    disk:
+      name: library_data
+      mountPath: /var/data
+      sizeGB: 1
 
     envVars:
       - key: PYTHON_VERSION
@@ -22,6 +27,9 @@ services:
 
       - key: DAILY_FINE_RATE
         value: "5.00"
+
+      - key: SQLITE_DB_PATH
+        value: "/var/data/db.sqlite3"
 
       - key: DJANGO_SUPERUSER_USERNAME
         value: "admin"
