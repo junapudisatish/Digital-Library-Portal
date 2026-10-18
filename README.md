@@ -176,47 +176,6 @@ Visit **`http://127.0.0.1:8000/`** in your browser.
 
 ---
 
-## 5. Render Production Deployment
-
-The project is preconfigured with a declarative `render.yaml` specification:
-
-```yaml
-services:
-  - type: web
-    name: digital-library-portal
-    runtime: python
-    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate && python create_superuser.py"
-    startCommand: "python create_superuser.py && gunicorn library_portal.wsgi:application"
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.11.0"
-      - key: SECRET_KEY
-        generateValue: true
-      - key: DEBUG
-        value: "False"
-      - key: WEB_CONCURRENCY
-        value: "2"
-      - key: DAILY_FINE_RATE
-        value: "5.00"
-      - key: DJANGO_SUPERUSER_USERNAME
-        value: "admin"
-      - key: DJANGO_SUPERUSER_PASSWORD
-        value: "admini!123"
-      - key: EMAIL_BACKEND
-        value: "library_portal.email_backends.BrevoEmailBackend"
-```
-
-### Manual Environment Variables on Render
-If configuring the service manually in the Render dashboard:
-- `SECRET_KEY`: A cryptographically secure random string.
-- `DEBUG`: `False`
-- `ALLOWED_HOSTS`: `digital-library-portal.onrender.com,localhost,127.0.0.1`
-- `DAILY_FINE_RATE`: `5.00`
-- `DJANGO_SUPERUSER_USERNAME`: `admin`
-- `DJANGO_SUPERUSER_PASSWORD`: `admini!123`
-- `EMAIL_BACKEND`: `library_portal.email_backends.BrevoEmailBackend` (or SMTP credentials).
-- `PYTHON_VERSION`: `3.11.0`
-
 ### Build & Start Commands
 - **Build Command**:
   `pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate && python create_superuser.py`
